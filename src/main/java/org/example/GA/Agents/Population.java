@@ -1,25 +1,26 @@
 package org.example.GA.Agents;
 
-import org.example.GA.Agents.Individual;
+
+import org.example.OptimizationProblems.AbstractProblem;
 
 public class Population {
     private Individual[] individuals;
     private int[] weights;
     private int[] values;
 
-    public Population(int populationSize, int[] weights, int[] values){
+    public Population(AbstractProblem problem, int populationSize){
         individuals = new Individual[populationSize];
         this.weights = weights;
         this.values = values;
-        initializePopulation();
+        initializePopulation(problem);
     }
 
     /**
      * Initialize population
      */
-    private void initializePopulation(){
+    private void initializePopulation(AbstractProblem problem){
         for (int i = 0; i < individuals.length; i++) {
-            individuals[i] = new Individual(weights, values);
+            individuals[i] = new Individual(problem);
         }
     }
 
@@ -44,9 +45,21 @@ public class Population {
      */
     public Individual getFittestIndividual(){
         Individual fittest = individuals[0];
+
         for (int i = 0; i < individuals.length; i++){
-            if (fittest.calculateFitness() <= getIndividual(i).calculateFitness()){
-                fittest = getIndividual(i);
+
+            switch (individuals[0].getProblem().optimizationMethod){
+
+                case COMBINATORIAL:
+                    if (fittest.calculateFitness() < getIndividual(i).calculateFitness()){
+                        fittest = getIndividual(i);
+                    }
+                    break;
+                case PERMUTATION:
+                    if (fittest.calculateFitness() > getIndividual(i).calculateFitness()){
+                        fittest = getIndividual(i);
+                    }
+                    break;
             }
         }
         return fittest;
@@ -55,11 +68,6 @@ public class Population {
         return individuals[index];
     }
 
-    public int[] getWeights() {
-        return weights;
-    }
+    public Individual[] getIndividuals() {return individuals;}
 
-    public int[] getValues() {
-        return values;
-    }
 }

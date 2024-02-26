@@ -1,16 +1,21 @@
 package org.example.GA;
 
-import org.example.GA.Agents.Individual;
-import org.example.GA.Agents.Population;
+import org.example.GA.Agents.Abilities.*;
+import org.example.GA.Agents.*;
+import org.example.OptimizationProblems.AbstractProblem;
 
 import static org.example.GA.Constants.*;
 
 public class GeneticAlgorithm {
 
-    int[] weight,value;
-    public GeneticAlgorithm(int[] weight, int[] value){
-        this.weight = weight;
-        this.value = value;
+    private AbstractProblem problem;
+    private iSelection selectionMethod;
+    private iReproduction reproductionMethod;
+
+    public GeneticAlgorithm(AbstractProblem problem, iSelection selectionMethod, iReproduction reproductionMethod){
+        this.problem = problem;
+        this.selectionMethod = selectionMethod;
+        this.reproductionMethod = reproductionMethod;
     }
 
     /**
@@ -20,12 +25,12 @@ public class GeneticAlgorithm {
      */
     public Population evolve(Population population){
 
-        Population newPopulation = new Population(population.size(), weight, value);
+        Population newPopulation = new Population(problem, population.size());
 
         // crossover
         for (int i = 0; i < population.size(); i++) {
-            Individual father = randomSelection(population);
-            Individual mother = randomSelection(population);
+            Individual father = selection(population);
+            Individual mother = selection(population);
             Individual child = crossover(father, mother);
             newPopulation.saveIndividual(i, child);
         }
@@ -43,13 +48,8 @@ public class GeneticAlgorithm {
      * @param population population to select from
      * @return individual selected
      */
-    private Individual randomSelection(Population population){
-        Population newPopulation = new Population(Constants.TOURNAMENT_SELECTION_SIZE, weight, value);
-        for (int i = 0; i < Constants.TOURNAMENT_SELECTION_SIZE; i++) {
-            int randomIndex = (int) (RANDOM.nextDouble() * population.size());
-            newPopulation.saveIndividual(i, population.getIndividual(randomIndex));
-        }
-        return newPopulation.getFittestIndividual();
+    private Individual selection(Population population){
+       return selectionMethod.selectIndividual(population);
     }
 
     /**
@@ -59,12 +59,7 @@ public class GeneticAlgorithm {
      * @return child individual
      */
     public Individual crossover(Individual father, Individual mother) {
-        Individual child = new Individual(weight, value);
-        for (int i = 0; i < value.length; i++) {
-            int gene = (RANDOM.nextDouble() <= CROSSOVER_RATE)? father.getGenes()[i] : mother.getGenes()[i];
-            child.setGene(i, gene);
-        }
-        return child;
+        return reproductionMethod.crossover(father, mother);
     }
 
     /**
@@ -72,11 +67,63 @@ public class GeneticAlgorithm {
      * @param individual individual to mutate
      */
     private void mutate(Individual individual){
-        for (int i = 0; i < value.length; i++) {
+        switch (individual.getProblem().optimizationMethod){
+            case COMBINATORIAL:
+                mutateCombinatorial(individual);
+                break;
+            case PERMUTATION:
+                mutatePermutation(individual);
+                break;
+        }
+    }
+
+    private void mutateCombinatorial(Individual individual){
+        for (int i = 0; i < problem.modelSize; i++) {
             if (RANDOM.nextDouble() <= MUTATION_RATE) {
-                int gene = RANDOM.nextInt(2);
+                int gene = RANDOM.nextInt(individual.getProblem().modelSize);
                 individual.setGene(i, gene);
             }
         }
+    }
+
+    private void mutatePermutation(Individual individual){
+        if (RANDOM.nextDouble() <= MUTATION_RATE) {
+            int index1 = RANDOM.nextInt(individual.getGenes().length);
+            int index2 = RANDOM.nextInt(individual.getGenes().length);
+
+            // Asegúrate de que index1 y index2 sean diferentes
+            while (index1 == index2) {
+                index2 = RANDOM.nextInt(individual.getGenes().length);
+            }
+
+            // Realiza el intercambio (swap)
+            int temp = individual.getGenes()[index1];
+            individual.setGene(index1, individual.getGenes()[index2]);
+            individual.setGene(index2, temp);
+        }
+    }
+
+    public AbstractProblem getProblem() {
+        return problem;
+    }
+
+    public void setProblem(AbstractProblem problem) {
+        this.problem = problem;
+    }
+
+    public iSelection getSelectionMethod() {
+        return selectionMethod;
+    }
+
+    public void setSelectionMethod(iSelection selectionMethod) {
+        this.selectionMethod = selectionMethod;
+    }
+
+    public iReproduction getReproductionMethod() {
+        return reproductionMethod;
+    }
+
+    public void setReproductionMethod(iReproduction reproductionMethod) {
+        this.reproductionMethod = reproductionMethod;
     }
 }

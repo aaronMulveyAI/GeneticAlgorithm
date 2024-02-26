@@ -1,22 +1,16 @@
 package org.example.GA.Agents;
 
-import org.example.GA.Constants;
-
+import org.example.OptimizationProblems.AbstractProblem;
 import java.util.Arrays;
-
-import static org.example.GA.Constants.GENES_BASE;
-import static org.example.GA.Constants.RANDOM;
 
 public class Individual {
     private int[] genes;
-    private int[] weight;
-    private int[] value;
-    private int fitness = 0;
+    private double fitness = 0;
+    private AbstractProblem problem;
 
-    public Individual(int[] weight, int[] value){
-        this.weight = weight;
-        this.value = value;
-        this.genes = new int[value.length];
+    public Individual(AbstractProblem problem){
+        this.problem = problem;
+        this.genes = new int[problem.modelSize];
         initializeGenes();
     }
 
@@ -24,28 +18,15 @@ public class Individual {
      * Initialize genes with random values
      */
     private void initializeGenes(){
-        for (int i = 0; i < value.length; i++){
-            genes[i] = RANDOM.nextInt(2);
-        }
+        this.genes = problem.sampleSolution();
     }
 
     /**
      * Calculate fitness of individual
      * @return fitness of individual
      */
-    public int calculateFitness(){
-        int weight = 0;
-        int value = 0;
-        for (int i = 0; i < genes.length; i++) {
-            if(genes[i] == 1){ // lo cojo?
-                weight += this.weight[i];
-                value += this.value[i];
-            }
-        }
-        if(weight <= Constants.KNAPSACK_CAPACITY){
-            return value;
-        }
-        return Integer.MIN_VALUE;
+    public double calculateFitness(){
+        return problem.solve(genes);
     }
 
     /**
@@ -59,10 +40,16 @@ public class Individual {
     public void setGenes(int[] genes) {
         this.genes = genes;
     }
-    public int getFitness() {return fitness;}
+    public double getFitness() {return fitness;}
     public int[] getGenes() {
         return genes;
     }
+    public AbstractProblem getProblem() {
+        return problem;
+    }
+
+    public int getGene(int index){return genes[index];}
+
     @Override
     public String toString() {
         return "Individual {" +
