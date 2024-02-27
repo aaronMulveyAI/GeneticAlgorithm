@@ -22,4 +22,5 @@ public abstract class AbstractProblem{
     public double solve(int[] solution){
         return 0;
     }
+
 }

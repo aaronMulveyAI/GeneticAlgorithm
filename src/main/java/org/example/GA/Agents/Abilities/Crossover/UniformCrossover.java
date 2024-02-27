@@ -34,10 +34,10 @@ public class UniformCrossover implements iReproduction {
         Individual child = new Individual(father.getProblem());
         int[] childGenes = new int[father.getGenes().length];
         boolean[] taken = new boolean[childGenes.length];
-        Arrays.fill(childGenes, -1); // Inicializar con valores no válidos
+        Arrays.fill(childGenes, -1);
         Arrays.fill(taken, false);
 
-        // Seleccionar genes de manera uniforme de ambos padres
+
         for (int i = 0; i < childGenes.length; i++) {
             if (RANDOM.nextDouble() < 0.5 && !taken[father.getGenes()[i]]) {
                 childGenes[i] = father.getGenes()[i];
@@ -45,7 +45,7 @@ public class UniformCrossover implements iReproduction {
             }
         }
 
-        // Rellenar los espacios restantes con genes de la madre
+
         for (int i = 0; i < mother.getGenes().length; i++) {
             if (!taken[mother.getGenes()[i]]) {
                 for (int j = 0; j < childGenes.length; j++) {

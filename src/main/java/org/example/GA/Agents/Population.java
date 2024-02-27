@@ -55,8 +55,31 @@ public class Population {
                         fittest = getIndividual(i);
                     }
                     break;
+
                 case PERMUTATION:
                     if (fittest.calculateFitness() > getIndividual(i).calculateFitness()){
+                        fittest = getIndividual(i);
+                    }
+                    break;
+            }
+        }
+        return fittest;
+    }
+
+    public Individual getLeastFitIndividual(){
+        Individual fittest = individuals[0];
+
+        for (int i = 0; i < individuals.length; i++){
+
+            switch (individuals[0].getProblem().optimizationMethod){
+
+                case COMBINATORIAL:
+                    if (fittest.calculateFitness() > getIndividual(i).calculateFitness()){
+                        fittest = getIndividual(i);
+                    }
+                    break;
+                case PERMUTATION:
+                    if (fittest.calculateFitness() < getIndividual(i).calculateFitness()){
                         fittest = getIndividual(i);
                     }
                     break;

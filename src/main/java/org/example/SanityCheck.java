@@ -17,7 +17,8 @@ public class SanityCheck {
         int[] weights = {2, 3, 4, 5};
         int[] values = {3, 4, 5, 6};
         int maxWeight = 5;
-        AbstractProblem knapsack = new KnapsackProblem(weights, values, maxWeight);
+
+        KnapsackProblem knapsack = KnapsackProblem.generateRandom(20);
 
         // Configuración del problema del vendedor viajero (TSP)
 

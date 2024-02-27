@@ -20,7 +20,7 @@ public class SinglePointCrossover implements iReproduction {
     public Individual crossoverCombination(Individual father, Individual mother) {
         Individual child = new Individual(father.getProblem());
 
-        int crossoverPoint = RANDOM.nextInt(child.getGenes().length);
+        int crossoverPoint = RANDOM.nextInt(father.getProblem().modelSize);
 
         for (int i = 0; i < child.getGenes().length; i++) {
             if (i <= crossoverPoint) {
@@ -37,7 +37,7 @@ public class SinglePointCrossover implements iReproduction {
     public Individual crossoverPermutation(Individual father, Individual mother) {
         Individual child = new Individual(father.getProblem());
         int[] childGenes = new int[father.getGenes().length];
-        Arrays.fill(childGenes, -1); // Inicializar con un valor no válido
+        Arrays.fill(childGenes, -1);
 
         int crossoverPoint1 = RANDOM.nextInt(child.getGenes().length);
         int crossoverPoint2 = RANDOM.nextInt(child.getGenes().length);
@@ -48,12 +48,12 @@ public class SinglePointCrossover implements iReproduction {
             crossoverPoint2 = temp;
         }
 
-        // Copiar el segmento del padre al hijo
+
         for (int i = crossoverPoint1; i <= crossoverPoint2; i++) {
             childGenes[i] = father.getGenes()[i];
         }
 
-        // Rellenar el resto del hijo con genes de la madre, preservando el orden pero sin duplicar
+
         int currentPos = 0;
         for (int i = 0; i < childGenes.length; i++) {
             int gene = mother.getGenes()[i];

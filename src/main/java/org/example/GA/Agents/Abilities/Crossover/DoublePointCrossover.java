@@ -24,7 +24,7 @@ public class DoublePointCrossover implements iReproduction {
         int crossoverPoint1 = RANDOM.nextInt(child.getGenes().length);
         int crossoverPoint2 = RANDOM.nextInt(child.getGenes().length);
 
-        // Asegurar que crossoverPoint1 es menor que crossoverPoint2
+
         if (crossoverPoint1 > crossoverPoint2) {
             int temp = crossoverPoint1;
             crossoverPoint1 = crossoverPoint2;
@@ -45,7 +45,7 @@ public class DoublePointCrossover implements iReproduction {
      public Individual crossoverPermutation(Individual father, Individual mother){
         Individual child = new Individual(father.getProblem());
         int[] childGenes = new int[father.getGenes().length];
-        Arrays.fill(childGenes, -1); // Inicializar con un valor no válido
+        Arrays.fill(childGenes, -1);
 
         int crossoverPoint1 = RANDOM.nextInt(child.getGenes().length);
         int crossoverPoint2 = RANDOM.nextInt(child.getGenes().length);
@@ -56,17 +56,17 @@ public class DoublePointCrossover implements iReproduction {
             crossoverPoint2 = temp;
         }
 
-        // Copiar el segmento del padre al hijo
+
         for (int i = crossoverPoint1; i <= crossoverPoint2; i++) {
             childGenes[i] = father.getGenes()[i];
         }
 
-        // Rellenar el resto del hijo con genes de la madre, preservando el orden pero sin duplicar
+
         int currentPos = 0;
         for (int i = 0; i < childGenes.length; i++) {
             int gene = mother.getGenes()[i];
             if (!containsGene(childGenes, gene)) {
-                // Encuentra la próxima posición no asignada
+
                 while (currentPos < childGenes.length && childGenes[currentPos] != -1) {
                     currentPos++;
                 }

@@ -26,6 +26,7 @@ public class Individual {
      * @return fitness of individual
      */
     public double calculateFitness(){
+        this.fitness = problem.solve(genes);
         return problem.solve(genes);
     }
 
@@ -40,7 +41,7 @@ public class Individual {
     public void setGenes(int[] genes) {
         this.genes = genes;
     }
-    public double getFitness() {return fitness;}
+    public double getFitness() {return problem.solve(genes);}
     public int[] getGenes() {
         return genes;
     }

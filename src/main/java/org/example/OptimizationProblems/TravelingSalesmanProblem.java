@@ -7,15 +7,32 @@ import static org.example.GA.Constants.RANDOM;
 public class TravelingSalesmanProblem extends AbstractProblem {
     public static double[][] distances;
 
+
     public TravelingSalesmanProblem(){
-        super("Traveling Salesman Problem", OptimizationMethod.PERMUTATION, 0, 0);
-        distances = new double[][]{
-                {0, 1, 2, 3, 4},
-                {1, 0, 1, 2, 3},
-                {2, 1, 0, 1, 2},
-                {3, 2, 1, 0, 1},
-                {4, 3, 2, 1, 0}
-        };
+        this(
+                new double[][]{
+                        {0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18,  19},
+                        {1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17,  18},
+                        {2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16,  17},
+                        {3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15,  16},
+                        {4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,  15},
+                        {5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14},
+                        {6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13},
+                        {7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12},
+                        {8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11},
+                        {9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10},
+                        {10,  9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9},
+                        {11, 10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7,   8},
+                        {12, 11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6,   7},
+                        {13, 12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5,   6},
+                        {14, 13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4,   5},
+                        {15, 14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3,   4},
+                        {16, 15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2,   3},
+                        {17, 16,  15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1,   2},
+                        {18, 17,  16,  15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0,   1},
+                        {19, 18,  17,  16,  15,  14,  13,  12,  11,  10,   9,   8,   7,   6,   5,   4,   3,   2,   1,   0}
+                }
+        );
     }
 
     public TravelingSalesmanProblem(double[][] distances) {
@@ -51,6 +68,18 @@ public class TravelingSalesmanProblem extends AbstractProblem {
             totalDistance += distances[solution[solution.length - 1]][solution[0]];
         }
         return totalDistance;
+    }
+
+    public static TravelingSalesmanProblem generateRandom(int n) {
+        double[][] distances = new double[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                double distance = RANDOM.nextDouble() * 100; // Genera una distancia aleatoria entre 0 y 100
+                distances[i][j] = distance;
+                distances[j][i] = distance; // Asegura que la matriz sea simétrica
+            }
+        }
+        return new TravelingSalesmanProblem(distances);
     }
 
 }
