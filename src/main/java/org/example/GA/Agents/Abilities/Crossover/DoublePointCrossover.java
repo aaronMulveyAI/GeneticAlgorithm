@@ -10,10 +10,10 @@ import static org.example.GA.Constants.RANDOM;
 public class DoublePointCrossover implements iReproduction {
     @Override
     public Individual crossover(Individual father, Individual mother) {
-        return switch (father.getProblem().optimizationMethod) {
+        return switch (father.getProblem().getOptimizationMethod()) {
             case COMBINATORIAL -> crossoverCombination(father, mother);
             case PERMUTATION -> crossoverPermutation(father, mother);
-            default -> throw new IllegalStateException("Unexpected value: " + father.getProblem().optimizationMethod);
+            default -> throw new IllegalStateException("Unexpected value: " + father.getProblem().getOptimizationMethod());
         };
     }
 

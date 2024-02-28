@@ -2,9 +2,11 @@ package org.example.GA;
 
 import org.example.GA.Agents.Abilities.*;
 import org.example.GA.Agents.*;
-import org.example.OptimizationProblems.AbstractProblem;
+import org.example.OptimizationProblems.Modelling.AbstractProblem;
 
 import static org.example.GA.Constants.*;
+import static org.example.OptimizationProblems.OptimizationMethod.COMBINATORIAL;
+import static org.example.OptimizationProblems.OptimizationMethod.PERMUTATION;
 
 public class GeneticAlgorithm {
 
@@ -67,7 +69,7 @@ public class GeneticAlgorithm {
      * @param individual individual to mutate
      */
     private void mutate(Individual individual){
-        switch (individual.getProblem().optimizationMethod){
+        switch (individual.getProblem().getOptimizationMethod()){
             case COMBINATORIAL:
                 mutateCombinatorial(individual);
                 break;
@@ -78,9 +80,9 @@ public class GeneticAlgorithm {
     }
 
     private void mutateCombinatorial(Individual individual){
-        for (int i = 0; i < problem.modelSize; i++) {
+        for (int i = 0; i < problem.getModelSize(); i++) {
             if (RANDOM.nextDouble() <= MUTATION_RATE) {
-                int gene = RANDOM.nextInt(individual.getProblem().modelSize);
+                int gene = RANDOM.nextInt(individual.getProblem().getModelSize());
                 individual.setGene(i, gene);
             }
         }

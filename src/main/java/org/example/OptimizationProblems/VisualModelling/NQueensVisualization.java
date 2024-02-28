@@ -1,16 +1,17 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.VisualModelling;
 
 import org.example.GA.Agents.Population;
 import javax.swing.*;
 import java.awt.*;
-import static org.example.OptimizationProblems.NQueensProblem.BOARD_SIZE;
+import static org.example.OptimizationProblems.Modelling.NQueensProblem.BOARD_SIZE;
 
-public class NQueensVisualization extends JPanel {
+public class NQueensVisualization extends AbstractVisualization {
     private int[] queensPositions; // Almacena las posiciones de las reinas
 
     public NQueensVisualization() {
     }
 
+    @Override
     public void setPopulation(Population population) {
         if (population != null) {
             queensPositions = population.getFittestIndividual().getGenes();
@@ -43,6 +44,8 @@ public class NQueensVisualization extends JPanel {
                     g.setColor(Color.BLACK);
                 }
                 g.fillRect(startX + j * cellSize, startY + i * cellSize, cellSize, cellSize);
+                g.setColor(Color.BLACK);
+                g.drawRect(startX + j * cellSize, startY + i * cellSize, cellSize, cellSize);
             }
         }
     }
@@ -79,6 +82,7 @@ public class NQueensVisualization extends JPanel {
         return true; // Si no se encontraron ataques, la solución es válida
     }
 
+    @Override
     public void clear() {
         setPopulation(null);
         repaint();

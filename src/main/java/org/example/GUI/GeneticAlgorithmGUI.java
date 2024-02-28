@@ -9,7 +9,8 @@ import org.example.GA.Agents.Abilities.iSelection;
 import org.example.GA.Agents.Population;
 import org.example.GA.Constants;
 import org.example.GA.GeneticAlgorithm;
-import org.example.OptimizationProblems.*;
+import org.example.OptimizationProblems.Modelling.*;
+import org.example.OptimizationProblems.VisualModelling.*;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -82,17 +83,6 @@ public class GeneticAlgorithmGUI extends JFrame {
     private ChartPanel histogramPanel;
     private JFreeChart chart;
 
-    private TravellingSalesmanVisualization TSPvisual;
-
-    private KnapsackVisualization KPvisual;
-
-    private NQueensVisualization NQvisual;
-
-    private GuessNumberVisualization GNvisual;
-
-    private RealValueOptimizationVisualization RVvisual;
-
-    private CircularTSPVisualization CTSPvisual;
 
     int indexSelection = 0;
 
@@ -173,42 +163,9 @@ public class GeneticAlgorithmGUI extends JFrame {
         initializeHistogram(); // Inicializa el histograma
         displayPanel.add(histogramPanel); // Añade el panel del histograma al panel central dividido en 3
 
-        TSPvisual = new TravellingSalesmanVisualization();
-        TSPvisual.setBackground(Color.WHITE);
-        KPvisual = new KnapsackVisualization(KnapsackProblem.maxWeight);
-        KPvisual.setBackground(Color.WHITE);
-        NQvisual = new NQueensVisualization();
-        NQvisual.setBackground(Color.WHITE);
-        GNvisual = new GuessNumberVisualization();
-        GNvisual.setBackground(Color.WHITE);
-        RVvisual = new RealValueOptimizationVisualization();
-        RVvisual.setBackground(Color.WHITE);
-        CTSPvisual = new CircularTSPVisualization();
-        CTSPvisual.setBackground(Color.WHITE);
-
-
-        switch (indexProblems) {
-            case 0:
-                displayPanel.add(TSPvisual);
-
-                break;
-            case 1:
-                displayPanel.add(KPvisual);
-                break;
-            case 2:
-                displayPanel.add(NQvisual);
-                break;
-            case 3:
-                displayPanel.add(GNvisual);
-                break;
-            case 4:
-                displayPanel.add(RVvisual);
-                break;
-            case 5:
-                displayPanel.add(CTSPvisual);
-                break;
-
-        }
+        JPanel visualization = problems[indexProblems].getVisualization();
+        visualization.setBackground(Color.WHITE);
+        displayPanel.add(visualization);
 
 
     }
@@ -286,11 +243,9 @@ public class GeneticAlgorithmGUI extends JFrame {
             statusLabel.setText("Algorithm restarted");
             series.clear();
             populationPanel.clear();
-            TSPvisual.clear();
-            KPvisual.clear();
-            NQvisual.clear();
-            GNvisual.clear();
-            RVvisual.clear();
+
+            problems[indexProblems].getVisualization().clear();
+
             plots();
             initGA();
             SwingUtilities.invokeLater(this::updateHistogram);
@@ -302,11 +257,9 @@ public class GeneticAlgorithmGUI extends JFrame {
             statusLabel.setText("Algorithm restarted");
             series.clear();
             populationPanel.clear();
-            TSPvisual.clear();
-            KPvisual.clear();
-            NQvisual.clear();
-            GNvisual.clear();
-            RVvisual.clear();
+
+            problems[indexProblems].getVisualization().clear();
+
             plots();
             initGA();
             SwingUtilities.invokeLater(this::updateHistogram);
@@ -318,32 +271,7 @@ public class GeneticAlgorithmGUI extends JFrame {
                 try {
                     int time = Integer.parseInt(input);
 
-                    switch (indexProblems) {
-                        case 0:
-                            problems[0] = TravelingSalesmanProblem.generateRandom(time);
-                            break;
-                        case 1:
-                            problems[1] = KnapsackProblem.generateRandom(time);
-                            break;
-
-                        case 2:
-                            problems[2] = NQueensProblem.generateRandom(time);
-                            break;
-
-                        case 3:
-                            problems[3] = GuessNumberProblem.generateRandom(time);
-                            break;
-
-                        case 4:
-                            problems[4] = RealValueOptimizationProblem.generateRandom();
-                            break;
-
-                        case 5:
-                            problems[5] = CircularTSProblem.generateRandom(time);
-                            break;
-
-                    }
-
+                    problems[indexProblems] = problems[indexProblems].generateRandom(time);
                     restartAlgorithmButton.doClick();
 
 
@@ -371,28 +299,8 @@ public class GeneticAlgorithmGUI extends JFrame {
                     SwingUtilities.invokeLater(() -> updateHistogram());
                     SwingUtilities.invokeLater(() -> populationPanel.setPopulation(population));
 
-                    switch (indexProblems) {
-                        case 0:
-                            SwingUtilities.invokeLater(() -> TSPvisual.setPopulation(population));
-                            break;
-                        case 1:
-                            SwingUtilities.invokeLater(() -> KPvisual.setPopulation(population));
-                            break;
-                        case 2:
-                            SwingUtilities.invokeLater(() -> NQvisual.setPopulation(population));
-                            break;
-                        case 3:
-                            SwingUtilities.invokeLater(() -> GNvisual.setPopulation(population));
-                            break;
-                        case 4:
-                            SwingUtilities.invokeLater(() -> RVvisual.setPopulation(population));
-                            break;
+                    SwingUtilities.invokeLater(() -> problems[indexProblems].getVisualization().setPopulation(population));
 
-                        case 5:
-                            SwingUtilities.invokeLater(() -> CTSPvisual.setPopulation(population));
-                            break;
-
-                    }
 
 
 

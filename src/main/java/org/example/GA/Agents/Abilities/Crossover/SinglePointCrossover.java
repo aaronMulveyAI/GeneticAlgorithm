@@ -10,7 +10,7 @@ public class SinglePointCrossover implements iReproduction {
 
     @Override
     public Individual crossover(Individual father, Individual mother) {
-       return switch (father.getProblem().optimizationMethod) {
+       return switch (father.getProblem().getOptimizationMethod()) {
            case COMBINATORIAL -> crossoverCombination(father, mother);
            case PERMUTATION -> crossoverPermutation(father, mother);
        };
@@ -20,7 +20,7 @@ public class SinglePointCrossover implements iReproduction {
     public Individual crossoverCombination(Individual father, Individual mother) {
         Individual child = new Individual(father.getProblem());
 
-        int crossoverPoint = RANDOM.nextInt(father.getProblem().modelSize);
+        int crossoverPoint = RANDOM.nextInt(father.getProblem().getModelSize());
 
         for (int i = 0; i < child.getGenes().length; i++) {
             if (i <= crossoverPoint) {

@@ -1,4 +1,7 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.Modelling;
+
+import org.example.OptimizationProblems.OptimizationMethod;
+import org.example.OptimizationProblems.VisualModelling.CircularTSPVisualization;
 
 import static org.example.GA.Constants.RANDOM;
 
@@ -11,13 +14,13 @@ public class CircularTSProblem extends AbstractProblem {
     }
 
     public CircularTSProblem(int numberOfCities) {
-        super("Circular Traveling Salesman Problem", OptimizationMethod.PERMUTATION, numberOfCities, numberOfCities);
+        super(new CircularTSPVisualization(), "Circular Traveling Salesman Problem", OptimizationMethod.PERMUTATION, numberOfCities);
         distances = generateCircularDistances(numberOfCities);
     }
 
     public int[] sampleSolution(){
-        int[] solution = new int[modelSize];
-        for (int i = 0; i < modelSize; i++){
+        int[] solution = new int[this.getModelSize()];
+        for (int i = 0; i < this.getModelSize(); i++){
             solution[i] = i;
         }
         // Mezcla aleatoriamente la secuencia para crear un recorrido inicial válido
@@ -54,8 +57,8 @@ public class CircularTSProblem extends AbstractProblem {
 
         return distances;
     }
-
-    public static CircularTSProblem generateRandom(int n) {
+    @Override
+    public AbstractProblem generateRandom(int n) {
         return new CircularTSProblem(n);
     }
 }

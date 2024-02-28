@@ -1,7 +1,7 @@
 package org.example.GA.Agents;
 
 
-import org.example.OptimizationProblems.AbstractProblem;
+import org.example.OptimizationProblems.Modelling.AbstractProblem;
 
 public class Population {
     private Individual[] individuals;
@@ -48,7 +48,7 @@ public class Population {
 
         for (int i = 0; i < individuals.length; i++){
 
-            switch (individuals[0].getProblem().optimizationMethod){
+            switch (individuals[0].getProblem().getOptimizationMethod()){
 
                 case COMBINATORIAL:
                     if (fittest.calculateFitness() <= getIndividual(i).calculateFitness()){
@@ -71,7 +71,7 @@ public class Population {
 
         for (int i = 0; i < individuals.length; i++){
 
-            switch (individuals[0].getProblem().optimizationMethod){
+            switch (individuals[0].getProblem().getOptimizationMethod()){
 
                 case COMBINATORIAL:
                     if (fittest.calculateFitness() > getIndividual(i).calculateFitness()){

@@ -1,6 +1,6 @@
 package org.example.GA.Agents;
 
-import org.example.OptimizationProblems.AbstractProblem;
+import org.example.OptimizationProblems.Modelling.AbstractProblem;
 import java.util.Arrays;
 
 public class Individual {
@@ -10,7 +10,7 @@ public class Individual {
 
     public Individual(AbstractProblem problem){
         this.problem = problem;
-        this.genes = new int[problem.modelSize];
+        this.genes = new int[problem.getModelSize()];
         initializeGenes();
     }
 

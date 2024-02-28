@@ -1,6 +1,7 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.VisualModelling;
 
 import org.example.GA.Agents.Population;
+import org.example.OptimizationProblems.Modelling.TravelingSalesmanProblem;
 
 import javax.swing.*;
 import java.awt.*;
@@ -8,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 
-public class CircularTSPVisualization extends JPanel {
+public class TravellingSalesmanVisualization extends AbstractVisualization {
 
     private double[][] distances;
     private int[] visitOrder;
@@ -18,12 +19,10 @@ public class CircularTSPVisualization extends JPanel {
 
     public boolean inicialiced = true;
 
-    public CircularTSPVisualization() {
-
-    }
+    @Override
     public void setPopulation(Population population){
         this.population = population;
-        this.distances = CircularTSProblem.distances;
+        this.distances = TravelingSalesmanProblem.distances;
         this.visitOrder = population.getFittestIndividual().getGenes();
 
         // Solo genera posiciones de nodo en la inicialización o reinicio
@@ -38,24 +37,14 @@ public class CircularTSPVisualization extends JPanel {
     private void generateNodePositions() {
         nodePositions = new HashMap<>();
 
-        // Calcula el centro del panel
-        int centerX = this.getSize().width / 2;
-        int centerY = this.getSize().height / 2;
+        Random random = new Random();
+        int panelWidth = this.getSize().width;
+        int panelHeight = this.getSize().height;
 
-        // Define el radio del círculo en el que se colocarán los nodos
-        // Asegúrate de que el círculo se ajuste dentro del panel
-        int radius = Math.min(centerX, centerY) - 50; // 50 píxeles de margen
-
-        // Calcula la posición de cada nodo distribuyéndolos uniformemente alrededor del círculo
         for (int i = 0; i < distances.length; i++) {
-            // Calcula el ángulo para el nodo actual
-            double angle = 2 * Math.PI * i / distances.length;
-
-            // Calcula las coordenadas (x, y) basándonos en el ángulo y el radio
-            int x = centerX + (int) (radius * Math.cos(angle));
-            int y = centerY + (int) (radius * Math.sin(angle));
-
-            // Almacena la posición del nodo
+            // Asegúrate de dejar un margen para evitar que los nodos se dibujen demasiado cerca de los bordes
+            int x = 15 + random.nextInt(panelWidth - 100);
+            int y = 75 + random.nextInt(panelHeight - 100);
             nodePositions.put(i, new Point(x, y));
         }
     }
@@ -89,6 +78,12 @@ public class CircularTSPVisualization extends JPanel {
             g.fillOval(point.x - 5, point.y - 5, 10, 10);
         }
 
+        // Título de la leyenda
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        g.setColor(Color.BLACK);
+        g.drawString("Distance Heat Map", 200, 25);
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
+
         drawColorLegend(g);
     }
     private void drawColorLegend(Graphics g) {
@@ -110,19 +105,15 @@ public class CircularTSPVisualization extends JPanel {
         g.setColor(Color.BLACK);
         g.drawRect(legendX, legendY, legendWidth, legendHeight);
 
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
         // Etiquetas de porcentaje
         g.drawString("0%", getWidth() - 35, getHeight() - 25);
         g.drawString("50%", getWidth() - 45, getHeight() / 2);
         g.drawString("100%", getWidth() - 50, 35);
 
         // Título de la leyenda
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        g.drawString("Distance Heat Map", 200, 25);
         g.setFont(new Font("Arial", Font.BOLD, 12));
-
     }
-
-
 
     private static Color getColor(double value, double minValue, double maxValue) {
         // Calcula la escala entre 0.0 y 1.0
@@ -146,9 +137,9 @@ public class CircularTSPVisualization extends JPanel {
 
 
 
+    @Override
     public void clear() {
         this.population = null;
         repaint(); // Vuelve a dibujar el panel para limpiarlo
     }
 }
-

@@ -1,10 +1,12 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.VisualModelling;
 
 import org.example.GA.Agents.Population;
+import org.example.OptimizationProblems.Modelling.GuessNumberProblem;
+
 import javax.swing.*;
 import java.awt.*;
 
-public class GuessNumberVisualization extends JPanel {
+public class GuessNumberVisualization extends AbstractVisualization {
     private Population population;
     private static final int FONT_SIZE = 20; // Tamaño de fuente para los números
     private static final int PADDING = 10; // Padding en píxeles alrededor de los números
@@ -12,6 +14,7 @@ public class GuessNumberVisualization extends JPanel {
     public GuessNumberVisualization() {
     }
 
+    @Override
     public void setPopulation(Population population) {
         this.population = population;
         repaint(); // Solicita que el componente se repinte
@@ -59,6 +62,7 @@ public class GuessNumberVisualization extends JPanel {
         }
     }
 
+    @Override
     public void clear() {
         setPopulation(null);
         repaint(); // Vuelve a dibujar el panel para limpiarlo

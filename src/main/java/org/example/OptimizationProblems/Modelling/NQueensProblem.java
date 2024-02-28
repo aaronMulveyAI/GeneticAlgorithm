@@ -1,4 +1,7 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.Modelling;
+
+import org.example.OptimizationProblems.OptimizationMethod;
+import org.example.OptimizationProblems.VisualModelling.NQueensVisualization;
 
 import java.util.Random;
 
@@ -10,7 +13,7 @@ public class NQueensProblem extends AbstractProblem {
     }
     public NQueensProblem(int n) {
 
-        super(n + "-Queens Problem", OptimizationMethod.COMBINATORIAL, n, n);
+        super(new NQueensVisualization(), n + "-Queens Problem", OptimizationMethod.COMBINATORIAL, n);
         BOARD_SIZE = n;
     }
 
@@ -44,8 +47,8 @@ public class NQueensProblem extends AbstractProblem {
         return (double) (BOARD_SIZE * (BOARD_SIZE - 1)) / 2 - clashes;
     }
 
-
-    public static NQueensProblem generateRandom(int n) {
+    @Override
+    public AbstractProblem generateRandom(int n) {
         return new NQueensProblem(n);
     }
 

@@ -1,4 +1,7 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.Modelling;
+
+import org.example.OptimizationProblems.OptimizationMethod;
+import org.example.OptimizationProblems.VisualModelling.GuessNumberVisualization;
 
 import static org.example.GA.Constants.RANDOM;
 
@@ -10,7 +13,7 @@ public class GuessNumberProblem extends AbstractProblem {
         this(10);
     }
     public GuessNumberProblem(int sequenceLength) {
-        super("Guess Number Problem", OptimizationMethod.COMBINATORIAL, sequenceLength, 10); // Asumimos un rango de 0 a 9 para cada número en la secuencia
+        super(new GuessNumberVisualization(), "Guess Number Problem", OptimizationMethod.COMBINATORIAL, sequenceLength); // Asumimos un rango de 0 a 9 para cada número en la secuencia
         GuessNumberProblem.sequenceLength = sequenceLength;
         GuessNumberProblem.targetSequence = sampleSolution();
     }
@@ -35,8 +38,9 @@ public class GuessNumberProblem extends AbstractProblem {
         return matchScore; // La "aptitud" es el número de coincidencias con la secuencia objetivo
     }
 
-    public static GuessNumberProblem generateRandom(int sequenceLength) {
-        return new GuessNumberProblem(sequenceLength);
+    @Override
+    public AbstractProblem generateRandom(int n) {
+        return new GuessNumberProblem(n);
     }
 }
 

@@ -1,4 +1,7 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.Modelling;
+
+import org.example.OptimizationProblems.OptimizationMethod;
+import org.example.OptimizationProblems.VisualModelling.KnapsackVisualization;
 
 import static org.example.GA.Constants.RANDOM;
 
@@ -17,7 +20,7 @@ public class KnapsackProblem extends AbstractProblem {
         );
     }
     public KnapsackProblem(int[] weights, int[] values, int maxWeight){
-        super("Knapsack AbstractProblem", OptimizationMethod.COMBINATORIAL, weights.length, 2);
+        super(new KnapsackVisualization(values.length), "Knapsack AbstractProblem", OptimizationMethod.COMBINATORIAL, weights.length);
         KnapsackProblem.weights = weights;
         KnapsackProblem.values = values;
         KnapsackProblem.maxWeight = maxWeight;
@@ -26,8 +29,8 @@ public class KnapsackProblem extends AbstractProblem {
 
     @Override
     public int[] sampleSolution(){
-        int[] solution = new int[modelSize];
-        for (int i = 0; i < modelSize; i++){
+        int[] solution = new int[this.getModelSize()];
+        for (int i = 0; i < this.getModelSize(); i++){
             solution[i] = RANDOM.nextInt(2);
         }
         return solution;
@@ -53,7 +56,8 @@ public class KnapsackProblem extends AbstractProblem {
         return 0;
     }
 
-    public static KnapsackProblem generateRandom(int n) {
+    @Override
+    public KnapsackProblem generateRandom(int n) {
         int[] weights = new int[n];
         int[] values = new int[n];
         int totalWeight = 0;

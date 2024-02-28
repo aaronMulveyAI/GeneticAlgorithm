@@ -12,7 +12,7 @@ public class UniformCrossover implements iReproduction {
 
     @Override
     public Individual crossover(Individual father, Individual mother) {
-       return switch (father.getProblem().optimizationMethod) {
+       return switch (father.getProblem().getOptimizationMethod()) {
            case COMBINATORIAL -> crossoverCombination(father, mother);
            case PERMUTATION -> crossoverPermutation(father, mother);
        };

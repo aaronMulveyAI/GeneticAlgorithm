@@ -1,13 +1,12 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.VisualModelling;
 
 import org.example.GA.Agents.Population;
 import java.awt.*;
-import java.util.function.Function;
 import javax.swing.*;
 
-import static org.example.OptimizationProblems.RealValueOptimizationProblem.*;
+import static org.example.OptimizationProblems.Modelling.RealValueOptimizationProblem.*;
 
-public class RealValueOptimizationVisualization extends JPanel {
+public class RealValueOptimizationVisualization extends AbstractVisualization {
     private Population population;
     private double minX = MIN_RANGE; // Mínimo del rango de x
     private double maxX = MAX_RANGE; // Máximo del rango de x
@@ -18,6 +17,7 @@ public class RealValueOptimizationVisualization extends JPanel {
 
     }
 
+    @Override
     public void setPopulation(Population population) {
         this.population = population;
         repaint(); // Solicita que el componente se repinte
@@ -95,6 +95,7 @@ public class RealValueOptimizationVisualization extends JPanel {
         return minX + ((maxX - minX) / (Math.pow(2, binary.length) - 1)) * value;
     }
 
+    @Override
     public void clear() {
         this.population = null;
         repaint(); // Vuelve a dibujar el panel para limpiarlo

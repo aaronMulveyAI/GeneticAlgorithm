@@ -1,4 +1,7 @@
-package org.example.OptimizationProblems;
+package org.example.OptimizationProblems.Modelling;
+
+import org.example.OptimizationProblems.OptimizationMethod;
+import org.example.OptimizationProblems.VisualModelling.RealValueOptimizationVisualization;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +25,7 @@ public class RealValueOptimizationProblem extends AbstractProblem {
     }
 
     public RealValueOptimizationProblem() {
-        super("Real Value Optimization Problem", OptimizationMethod.COMBINATORIAL, CHROMOSOME_LENGTH, 2);
+        super(new RealValueOptimizationVisualization(),"Real Value Optimization Problem", OptimizationMethod.COMBINATORIAL, CHROMOSOME_LENGTH);
         objectiveFunction = selectRandomFunction();
     }
 
@@ -41,6 +44,12 @@ public class RealValueOptimizationProblem extends AbstractProblem {
         return objectiveFunction.apply(realValue);
     }
 
+    @Override
+    public AbstractProblem generateRandom(int n) {
+        return new RealValueOptimizationProblem();
+    }
+
+
     private double binaryToReal(int[] binary) {
         long value = 0;
         for (int i = 0; i < CHROMOSOME_LENGTH; i++) {
@@ -56,8 +65,5 @@ public class RealValueOptimizationProblem extends AbstractProblem {
         return functions.get(RANDOM.nextInt(functions.size()));
     }
 
-    public static RealValueOptimizationProblem generateRandom() {
-        // Crear una nueva instancia de KnapsackProblem con los datos generados
-        return new RealValueOptimizationProblem();
-    }
+
 }
