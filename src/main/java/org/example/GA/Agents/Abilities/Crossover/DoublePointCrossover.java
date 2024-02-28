@@ -6,7 +6,6 @@ import org.example.GA.Agents.Individual;
 import java.util.Arrays;
 
 import static org.example.GA.Constants.RANDOM;
-import static org.example.OptimizationProblems.Modelling.OptimizationMethod.*;
 
 public class DoublePointCrossover implements iReproduction {
     @Override

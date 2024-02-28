@@ -51,7 +51,7 @@ public class Population {
             switch (individuals[0].getProblem().optimizationMethod){
 
                 case COMBINATORIAL:
-                    if (fittest.calculateFitness() < getIndividual(i).calculateFitness()){
+                    if (fittest.calculateFitness() <= getIndividual(i).calculateFitness()){
                         fittest = getIndividual(i);
                     }
                     break;

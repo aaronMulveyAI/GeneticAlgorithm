@@ -1,7 +1,5 @@
 package org.example.OptimizationProblems;
 
-import org.example.OptimizationProblems.Modelling.OptimizationMethod;
-
 import static org.example.GA.Constants.RANDOM;
 
 public class KnapsackProblem extends AbstractProblem {
@@ -46,7 +44,9 @@ public class KnapsackProblem extends AbstractProblem {
                 value += values[i];
             }
         }
+
         if(weight <= maxWeight){
+
             return value;
         }
 

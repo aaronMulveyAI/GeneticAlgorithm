@@ -4,7 +4,7 @@ import org.example.OptimizationProblems.AbstractProblem;
 import java.util.Arrays;
 
 public class Individual {
-    private int[] genes;
+    public int[] genes;
     private double fitness = 0;
     private AbstractProblem problem;
 

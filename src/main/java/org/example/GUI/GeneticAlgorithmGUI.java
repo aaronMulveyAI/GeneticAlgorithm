@@ -55,8 +55,11 @@ public class GeneticAlgorithmGUI extends JFrame {
 
     AbstractProblem[] problems = new AbstractProblem[] {
             new TravelingSalesmanProblem(),
-            new KnapsackProblem()
-
+            new KnapsackProblem(),
+            new NQueensProblem(),
+            new GuessNumberProblem(),
+            new RealValueOptimizationProblem(),
+            new CircularTSProblem()
     };
 
     int indexProblems = 0;
@@ -70,8 +73,9 @@ public class GeneticAlgorithmGUI extends JFrame {
     int indexCrossover = 0;
 
     iSelection[] selectionMethods = new iSelection[] {
-        new RouletteSelection(),
-        new TournamentSelection()
+            new TournamentSelection(),
+            new RouletteSelection()
+
     };
 
     private JFreeChart histogramChart;
@@ -82,6 +86,14 @@ public class GeneticAlgorithmGUI extends JFrame {
 
     private KnapsackVisualization KPvisual;
 
+    private NQueensVisualization NQvisual;
+
+    private GuessNumberVisualization GNvisual;
+
+    private RealValueOptimizationVisualization RVvisual;
+
+    private CircularTSPVisualization CTSPvisual;
+
     int indexSelection = 0;
 
     public GeneticAlgorithmGUI() {
@@ -89,6 +101,7 @@ public class GeneticAlgorithmGUI extends JFrame {
         setSize(1500, 1000); // Ajustamos el tamaño inicial de la ventana
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout()); // Usamos BorderLayout como layout principal
+        setBackground(Color.WHITE);
 
 
         sidePanel();
@@ -104,6 +117,7 @@ public class GeneticAlgorithmGUI extends JFrame {
     public void plots(){
 
         JPanel displayPanel = new JPanel(new GridLayout(2, 2)); // Organiza en 2 filas y 2 columnas
+        displayPanel.setBackground(Color.WHITE);
         displayPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
         add(displayPanel, BorderLayout.CENTER);
 
@@ -153,21 +167,47 @@ public class GeneticAlgorithmGUI extends JFrame {
         add(displayPanel, BorderLayout.CENTER);
 
         populationPanel = new PopulationPanel();
+        populationPanel.setBackground(Color.WHITE);
         displayPanel.add(populationPanel);
 
         initializeHistogram(); // Inicializa el histograma
         displayPanel.add(histogramPanel); // Añade el panel del histograma al panel central dividido en 3
 
         TSPvisual = new TravellingSalesmanVisualization();
+        TSPvisual.setBackground(Color.WHITE);
         KPvisual = new KnapsackVisualization(KnapsackProblem.maxWeight);
+        KPvisual.setBackground(Color.WHITE);
+        NQvisual = new NQueensVisualization();
+        NQvisual.setBackground(Color.WHITE);
+        GNvisual = new GuessNumberVisualization();
+        GNvisual.setBackground(Color.WHITE);
+        RVvisual = new RealValueOptimizationVisualization();
+        RVvisual.setBackground(Color.WHITE);
+        CTSPvisual = new CircularTSPVisualization();
+        CTSPvisual.setBackground(Color.WHITE);
+
 
         switch (indexProblems) {
             case 0:
                 displayPanel.add(TSPvisual);
+
                 break;
             case 1:
                 displayPanel.add(KPvisual);
                 break;
+            case 2:
+                displayPanel.add(NQvisual);
+                break;
+            case 3:
+                displayPanel.add(GNvisual);
+                break;
+            case 4:
+                displayPanel.add(RVvisual);
+                break;
+            case 5:
+                displayPanel.add(CTSPvisual);
+                break;
+
         }
 
 
@@ -186,18 +226,26 @@ public class GeneticAlgorithmGUI extends JFrame {
         sidePanel.add(restartAlgorithmButton);
 
 
-        problemComboBox = new JComboBox<>(new String[]{"Traveling Salesman Problem", "Knapsack Problem"});
+        problemComboBox = new JComboBox<>(new String[]{
+                "Traveling Salesman Problem",
+                "Knapsack Problem",
+                "N-Queens Problem",
+                "Guess Number Problem",
+                "Real Value Optimization Problem",
+                "Circular TSP Problem"
+        });
+
         sidePanel.add(problemComboBox);
 
         crossoverTypeComboBox = new JComboBox<>(new String[]{"Single Point", "Double Point", "Uniform"});
         // sidePanel.add(new JLabel("Crossover Type:"));
         sidePanel.add(crossoverTypeComboBox);
 
-        selectionTypeComboBox = new JComboBox<>(new String[]{"Roulette", "Tournament"});
+        selectionTypeComboBox = new JComboBox<>(new String[]{"Tournament", "Roulette"});
         // sidePanel.add(new JLabel("Selection Type:"));
         sidePanel.add(selectionTypeComboBox);
 
-        JPanel constantsPanel = new JPanel(new GridLayout(0, 2, 0, 0));
+        JPanel constantsPanel = new JPanel(new GridLayout(0, 2, 10, 0));
         //sidePanel.add(new JLabel("Constants Configuration:"));
         sidePanel.add(constantsPanel);
 
@@ -239,8 +287,28 @@ public class GeneticAlgorithmGUI extends JFrame {
             series.clear();
             populationPanel.clear();
             TSPvisual.clear();
+            KPvisual.clear();
+            NQvisual.clear();
+            GNvisual.clear();
+            RVvisual.clear();
             plots();
+            initGA();
+            SwingUtilities.invokeLater(this::updateHistogram);
+            runOneGeneration(1);
 
+            generatiosn = 0;
+            ga = null;
+            population = null;
+            statusLabel.setText("Algorithm restarted");
+            series.clear();
+            populationPanel.clear();
+            TSPvisual.clear();
+            KPvisual.clear();
+            NQvisual.clear();
+            GNvisual.clear();
+            RVvisual.clear();
+            plots();
+            initGA();
             SwingUtilities.invokeLater(this::updateHistogram);
         });
 
@@ -257,7 +325,27 @@ public class GeneticAlgorithmGUI extends JFrame {
                         case 1:
                             problems[1] = KnapsackProblem.generateRandom(time);
                             break;
+
+                        case 2:
+                            problems[2] = NQueensProblem.generateRandom(time);
+                            break;
+
+                        case 3:
+                            problems[3] = GuessNumberProblem.generateRandom(time);
+                            break;
+
+                        case 4:
+                            problems[4] = RealValueOptimizationProblem.generateRandom();
+                            break;
+
+                        case 5:
+                            problems[5] = CircularTSProblem.generateRandom(time);
+                            break;
+
                     }
+
+                    restartAlgorithmButton.doClick();
+
 
                 } catch (NumberFormatException ex) {
                     JOptionPane.showMessageDialog(this, "Please enter a valid number", "Error", JOptionPane.ERROR_MESSAGE);
@@ -279,10 +367,34 @@ public class GeneticAlgorithmGUI extends JFrame {
                     population = ga.evolve(population);
                     int currentGeneration = i + 1;
                     double fitness = population.getFittestIndividual().getFitness();
+
                     SwingUtilities.invokeLater(() -> updateHistogram());
                     SwingUtilities.invokeLater(() -> populationPanel.setPopulation(population));
-                    SwingUtilities.invokeLater(() -> TSPvisual.setPopulation(population));
-                    SwingUtilities.invokeLater(() -> KPvisual.setPopulation(population));
+
+                    switch (indexProblems) {
+                        case 0:
+                            SwingUtilities.invokeLater(() -> TSPvisual.setPopulation(population));
+                            break;
+                        case 1:
+                            SwingUtilities.invokeLater(() -> KPvisual.setPopulation(population));
+                            break;
+                        case 2:
+                            SwingUtilities.invokeLater(() -> NQvisual.setPopulation(population));
+                            break;
+                        case 3:
+                            SwingUtilities.invokeLater(() -> GNvisual.setPopulation(population));
+                            break;
+                        case 4:
+                            SwingUtilities.invokeLater(() -> RVvisual.setPopulation(population));
+                            break;
+
+                        case 5:
+                            SwingUtilities.invokeLater(() -> CTSPvisual.setPopulation(population));
+                            break;
+
+                    }
+
+
 
                     // Publica los resultados intermedios para procesarlos en el EDT
                     publish(currentGeneration, (int) fitness);

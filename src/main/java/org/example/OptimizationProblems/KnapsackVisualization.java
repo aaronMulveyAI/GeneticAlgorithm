@@ -1,6 +1,7 @@
 package org.example.OptimizationProblems;
 
 
+import org.example.GA.Agents.Individual;
 import org.example.GA.Agents.Population;
 
 import javax.swing.*;
@@ -16,11 +17,20 @@ public class KnapsackVisualization extends JPanel {
         this.capacity = capacity;
     }
 
+    double totalWeight;
     public void setPopulation(Population population) {
         this.population = population;
         if (population != null) {
             // Asumiendo que existe un método en Population para obtener el peso total de la mochila más apta
-            double totalWeight = population.getFittestIndividual().getFitness();
+            Individual fittest = population.getFittestIndividual();
+
+            totalWeight = 0;
+            for (int i = 0; i < fittest.genes.length; i++) {
+                if (fittest.genes[i] == 1) {
+                    totalWeight += KnapsackProblem.weights[i];
+                }
+            }
+
             this.filledPercentage = totalWeight / capacity;
         } else {
             this.filledPercentage = 0;
@@ -56,10 +66,12 @@ public class KnapsackVisualization extends JPanel {
         // Dibujar el borde de la caja
         g.setColor(Color.BLACK);
         g.drawRect(startX, startY, boxWidth, boxHeight);
+
+        g.drawString("Filled : " + totalWeight + " / " + capacity, 240, 140);
     }
 
     public void clear() {
-        this.population = null;
+        setPopulation(null);
         repaint(); // Vuelve a dibujar el panel para limpiarlo
     }
 }

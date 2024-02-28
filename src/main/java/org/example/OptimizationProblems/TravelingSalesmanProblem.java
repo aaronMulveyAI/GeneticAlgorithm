@@ -1,7 +1,5 @@
 package org.example.OptimizationProblems;
 
-import org.example.OptimizationProblems.Modelling.OptimizationMethod;
-
 import static org.example.GA.Constants.RANDOM;
 
 public class TravelingSalesmanProblem extends AbstractProblem {
@@ -39,6 +37,7 @@ public class TravelingSalesmanProblem extends AbstractProblem {
         super("Traveling Salesman Problem", OptimizationMethod.PERMUTATION, distances.length, distances.length);
         TravelingSalesmanProblem.distances = distances;
     }
+
 
     public int[] sampleSolution(){
         int[] solution = new int[modelSize];
@@ -81,5 +80,4 @@ public class TravelingSalesmanProblem extends AbstractProblem {
         }
         return new TravelingSalesmanProblem(distances);
     }
-
 }

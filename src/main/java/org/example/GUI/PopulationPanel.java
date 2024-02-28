@@ -25,19 +25,24 @@ public class PopulationPanel extends JPanel {
 
         int gridSize = (int) Math.sqrt(population.size());
         int boxSize = (Math.min(getWidth(), getHeight()) / gridSize) - 7;
+        // Calcula el ancho total del cuadrado de la población
+        int totalWidth = boxSize * gridSize;
+        // Calcula el inicio para centrar el cuadrado en el panel
+        int startX = (getWidth() - totalWidth) / 2;
+        int startY = (getHeight() - totalWidth) / 2;
 
         double maxFitness = population.getFittestIndividual().getFitness();
         double minFitness = population.getLeastFitIndividual().getFitness();
 
         double sum = 0;
         for (int i = 0; i < population.size(); i++) {
-            int x = 120 + (i % gridSize) * boxSize;
-            int y = 35 + (i / gridSize) * boxSize;
+            sum += (int) population.getIndividual(i).getFitness();
+
+            int x = startX + (i % gridSize) * boxSize;
+            int y = startY + (i / gridSize) * boxSize;
 
             double fitness = population.getIndividual(i).getFitness();
             Color color = getColor(fitness, minFitness, maxFitness);
-
-            sum += (double) color.getRed() / 255;
 
             g.setColor(color);
             g.fillRect(x, y, boxSize, boxSize);
@@ -45,21 +50,23 @@ public class PopulationPanel extends JPanel {
             g.drawRect(x, y, boxSize, boxSize);
         }
 
-        drawAvarageFitness(g, sum / population.size());
+        drawAvarageFitness(g,  sum / population.size());
         drawColorLegend(g); // Dibuja la leyenda de color
     }
 
+
     private void drawAvarageFitness(Graphics g, double avarageFitness) {
         g.setColor(Color.BLACK);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
+        g.setFont(new Font("Arial", Font.PLAIN, 15));
         String a = String.format("%.2f", avarageFitness);
-        g.drawString("Fitness promedio: " + a, 170, getHeight() - 15);
+        g.drawString("Average Fitness: " + a, 200, getHeight() - 15);
     }
 
     private void drawColorLegend(Graphics g) {
+
         int legendHeight = getHeight() - 50; // Altura de la leyenda
         int legendWidth = 20; // Ancho de la leyenda
-        int legendX = getWidth() - legendWidth - 100; // Posición X de la leyenda
+        int legendX = getWidth() - legendWidth - 60; // Posición X de la leyenda
         int legendY = 25; // Posición Y de la leyenda
 
         for (int i = 0; i < legendHeight; i++) {
@@ -69,17 +76,31 @@ public class PopulationPanel extends JPanel {
             g.fillRect(legendX, legendY + i, legendWidth, 1);
         }
 
+
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
+        g.setColor(Color.BLACK);
+        g.drawString("0%", getWidth() - 35, getHeight() - 25);
+        g.drawString("50%", getWidth() - 45, getHeight() / 2);
+        g.drawString("100%", getWidth() - 50, 35);
         // Dibuja los bordes de la leyenda
         g.setColor(Color.BLACK);
         g.drawRect(legendX, legendY, legendWidth, legendHeight);
         g.setColor(Color.BLACK);
-        g.drawString("0%", getWidth() - 70, getHeight() - 25);
-        g.drawString("50%", getWidth() - 75, getHeight() / 2);
-        g.drawString("100%", getWidth() - 80, 35);
-        g.setColor(Color.BLACK);
-        g.setFont(new Font("Arial", Font.BOLD, 20));
-        g.drawString("Visualización de la Población", 150, 25);
 
+        g.setColor(Color.BLACK);
+        Font font = g.getFont();
+        g.setFont(new Font("Arial", Font.PLAIN, 12));
+        drawTitle(g, "Population Fitness Temperature Map");
+        g.setFont(font);
+
+    }
+
+    public void drawTitle(Graphics g, String title){
+        g.setColor(Color.BLACK);
+        Font font = g.getFont();
+        g.setFont(new Font("Arial", Font.BOLD, 20));
+        g.drawString(title, 130, 25);
+        g.setFont(font);
     }
 
 
