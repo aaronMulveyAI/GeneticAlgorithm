@@ -9,19 +9,16 @@ import java.util.Random;
 import java.util.function.Function;
 
 public class RealValueOptimizationProblem extends AbstractProblem {
-    public static final int CHROMOSOME_LENGTH = 32; // Longitud del cromosoma para representar números reales
-    public static final double MIN_RANGE = -100; // Límite inferior del rango de valores reales
-    public static final double MAX_RANGE = 100; // Límite superior del rango de valores reales
-    public static Function<Double, Double> objectiveFunction; // Función objetivo a optimizar
+    public static final int CHROMOSOME_LENGTH = 32;
+    public static final double MIN_RANGE = -100;
+    public static final double MAX_RANGE = 100;
+    public static Function<Double, Double> objectiveFunction;
 
     private static final List<Function<Double, Double>> functions = new ArrayList<>();
     private static final Random RANDOM = new Random();
 
     static {
-        // Inicializar el pool de funciones objetivo
         functions.add(x -> (Math.sin(x) * ((x - 2) * (x - 2) + 3)) / x + 0.5);
-
-        // Añadir más funciones según sea necesario
     }
 
     public RealValueOptimizationProblem() {
@@ -61,7 +58,7 @@ public class RealValueOptimizationProblem extends AbstractProblem {
     }
 
     private Function<Double, Double> selectRandomFunction() {
-        // Selecciona y devuelve una función aleatoria del pool
+
         return functions.get(RANDOM.nextInt(functions.size()));
     }
 

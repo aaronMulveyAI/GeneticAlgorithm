@@ -6,8 +6,8 @@ import org.example.OptimizationProblems.VisualModelling.GuessNumberVisualization
 import static org.example.GA.Constants.RANDOM;
 
 public class GuessNumberProblem extends AbstractProblem {
-    public static int[] targetSequence; // La secuencia objetivo que se intenta adivinar
-    public static int sequenceLength; // Longitud de la secuencia a adivinar
+    public static int[] targetSequence;
+    public static int sequenceLength;
 
     public GuessNumberProblem() {
         this(10);
@@ -22,7 +22,7 @@ public class GuessNumberProblem extends AbstractProblem {
     public int[] sampleSolution() {
         int[] solution = new int[sequenceLength];
         for (int i = 0; i < sequenceLength; i++) {
-            solution[i] = RANDOM.nextInt(10); // Genera un número aleatorio en el rango [0, 9]
+            solution[i] = RANDOM.nextInt(10);
         }
         return solution;
     }
@@ -32,10 +32,10 @@ public class GuessNumberProblem extends AbstractProblem {
         int matchScore = 0;
         for (int i = 0; i < solution.length; i++) {
             if (solution[i] == targetSequence[i]) {
-                matchScore += 1; // Incrementa el puntaje por cada número coincidente
+                matchScore += 1;
             }
         }
-        return matchScore; // La "aptitud" es el número de coincidencias con la secuencia objetivo
+        return matchScore;
     }
 
     @Override

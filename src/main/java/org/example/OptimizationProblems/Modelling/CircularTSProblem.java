@@ -23,7 +23,7 @@ public class CircularTSProblem extends AbstractProblem {
         for (int i = 0; i < this.getModelSize(); i++){
             solution[i] = i;
         }
-        // Mezcla aleatoriamente la secuencia para crear un recorrido inicial válido
+
         for (int i = solution.length - 1; i > 0; i--){
             int indexToSwap = RANDOM.nextInt(i + 1);
             int temp = solution[i];
@@ -39,7 +39,7 @@ public class CircularTSProblem extends AbstractProblem {
         for (int i = 0; i < solution.length - 1; i++) {
             totalDistance += distances[solution[i]][solution[i + 1]];
         }
-        totalDistance += distances[solution[solution.length - 1]][solution[0]]; // Completa el ciclo volviendo al punto inicial
+        totalDistance += distances[solution[solution.length - 1]][solution[0]];
         return totalDistance;
     }
 
@@ -51,7 +51,7 @@ public class CircularTSProblem extends AbstractProblem {
             for (int j = i + 1; j < numberOfCities; j++) {
                 double angle = angleIncrement * Math.abs(i - j);
                 distances[i][j] = Math.sqrt(2 - 2 * Math.cos(angle));
-                distances[j][i] = distances[i][j]; // La matriz es simétrica
+                distances[j][i] = distances[i][j];
             }
         }
 

@@ -2,7 +2,7 @@ package org.example.GA;
 
 import org.example.GA.Agents.Abilities.*;
 import org.example.GA.Agents.*;
-import org.example.OptimizationProblems.Modelling.AbstractProblem;
+import org.example.OptimizationProblems.Modelling.*;
 
 import static org.example.GA.Constants.*;
 import static org.example.OptimizationProblems.OptimizationMethod.COMBINATORIAL;
@@ -10,6 +10,7 @@ import static org.example.OptimizationProblems.OptimizationMethod.PERMUTATION;
 
 public class GeneticAlgorithm {
 
+    public static OPTIMIZATION_TYPE optimizationType = OPTIMIZATION_TYPE.MAXIMIZE;
     private AbstractProblem problem;
     private iSelection selectionMethod;
     private iReproduction reproductionMethod;
@@ -18,6 +19,17 @@ public class GeneticAlgorithm {
         this.problem = problem;
         this.selectionMethod = selectionMethod;
         this.reproductionMethod = reproductionMethod;
+        optimizationType(problem);
+    }
+
+    public void optimizationType(AbstractProblem problem){
+        if (problem instanceof TravelingSalesmanProblem) optimizationType = OPTIMIZATION_TYPE.MINIMIZE;
+        if (problem instanceof CircularTSProblem) optimizationType = OPTIMIZATION_TYPE.MINIMIZE;
+        if (problem instanceof NQueensProblem) optimizationType = OPTIMIZATION_TYPE.MAXIMIZE;
+        if (problem instanceof KnapsackProblem) optimizationType = OPTIMIZATION_TYPE.MAXIMIZE;
+        if (problem instanceof GuessNumberProblem) optimizationType = OPTIMIZATION_TYPE.MAXIMIZE;
+        if (problem instanceof RealValueOptimizationProblem) optimizationType = OPTIMIZATION_TYPE.MAXIMIZE;
+
     }
 
     /**

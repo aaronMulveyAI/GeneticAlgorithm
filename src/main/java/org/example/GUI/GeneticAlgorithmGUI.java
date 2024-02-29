@@ -2,8 +2,10 @@ package org.example.GUI;
 import org.example.GA.Agents.Abilities.Crossover.DoublePointCrossover;
 import org.example.GA.Agents.Abilities.Crossover.SinglePointCrossover;
 import org.example.GA.Agents.Abilities.Crossover.UniformCrossover;
+import org.example.GA.Agents.Abilities.Selection.BrindleSelection;
 import org.example.GA.Agents.Abilities.Selection.RouletteSelection;
 import org.example.GA.Agents.Abilities.Selection.TournamentSelection;
+import org.example.GA.Agents.Abilities.Selection.TruncationSelection;
 import org.example.GA.Agents.Abilities.iReproduction;
 import org.example.GA.Agents.Abilities.iSelection;
 import org.example.GA.Agents.Population;
@@ -75,7 +77,9 @@ public class GeneticAlgorithmGUI extends JFrame {
 
     iSelection[] selectionMethods = new iSelection[] {
             new TournamentSelection(),
-            new RouletteSelection()
+            new RouletteSelection(),
+            new TruncationSelection(0.5),
+            new BrindleSelection()
 
     };
 
@@ -198,7 +202,12 @@ public class GeneticAlgorithmGUI extends JFrame {
         // sidePanel.add(new JLabel("Crossover Type:"));
         sidePanel.add(crossoverTypeComboBox);
 
-        selectionTypeComboBox = new JComboBox<>(new String[]{"Tournament", "Roulette"});
+        selectionTypeComboBox = new JComboBox<>(new String[]{
+                "Tournament",
+                "Roulette",
+                "Truncation",
+                "Brindle Sampling"
+        });
         // sidePanel.add(new JLabel("Selection Type:"));
         sidePanel.add(selectionTypeComboBox);
 
@@ -224,6 +233,7 @@ public class GeneticAlgorithmGUI extends JFrame {
 
         // Manejadores de eventos
         runOneGenerationButton.addActionListener(e -> runOneGeneration(1));
+
         runNGenerationsButton.addActionListener(e -> {
             String input = JOptionPane.showInputDialog(this, "Enter number of generations to run");
             if (input != null && !input.isEmpty()) {

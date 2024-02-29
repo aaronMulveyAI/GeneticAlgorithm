@@ -13,7 +13,6 @@ public class DoublePointCrossover implements iReproduction {
         return switch (father.getProblem().getOptimizationMethod()) {
             case COMBINATORIAL -> crossoverCombination(father, mother);
             case PERMUTATION -> crossoverPermutation(father, mother);
-            default -> throw new IllegalStateException("Unexpected value: " + father.getProblem().getOptimizationMethod());
         };
     }
 
