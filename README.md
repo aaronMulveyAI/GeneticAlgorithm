@@ -1,7 +1,7 @@
 ## Introduction
 This project presents advanced software developed to solve complex problems through genetic algorithms. Inspired by natural selection and genetics, our software provides a generic framework that allows users to tackle optimization problems efficiently without delving into the complexities of algorithm implementation.
 
-![Video of the GUI](https://github.com/aaronMulveyAI/GeneticAlgorithm/issues/1#issue-2180003949I)
+
 
 ## Objectives
 - Develop a Generic Genetic Algorithm framework.
