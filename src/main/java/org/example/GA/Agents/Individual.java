@@ -18,7 +18,9 @@ public class Individual {
      * Initialize genes with random values
      */
     private void initializeGenes(){
+
         this.genes = problem.sampleSolution();
+        this.fitness = problem.solve(genes);
     }
 
     /**

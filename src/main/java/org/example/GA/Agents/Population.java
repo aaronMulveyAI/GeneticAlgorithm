@@ -5,13 +5,9 @@ import org.example.OptimizationProblems.Modelling.AbstractProblem;
 
 public class Population {
     private Individual[] individuals;
-    private int[] weights;
-    private int[] values;
 
     public Population(AbstractProblem problem, int populationSize){
         individuals = new Individual[populationSize];
-        this.weights = weights;
-        this.values = values;
         initializePopulation(problem);
     }
 
@@ -32,6 +28,7 @@ public class Population {
     public void saveIndividual(int index, Individual individual){
         individuals[index] = individual;
     }
+
 
     /**
      * Get size of population

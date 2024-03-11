@@ -8,15 +8,21 @@ import org.example.GA.Constants;
 import static org.example.GA.Constants.RANDOM;
 
 public class TournamentSelection implements iSelection {
+
+    int TournamentSize;
+    public TournamentSelection(int TournamentSize) {
+        this.TournamentSize = TournamentSize;
+    }
+
     @Override
     public Individual selectIndividual(Population population) {
 
         Population newPopulation = new Population(
                 population.getIndividuals()[0].getProblem(),
-                Constants.TOURNAMENT_SELECTION_SIZE
+                this.TournamentSize
         );
 
-        for (int i = 0; i < Constants.TOURNAMENT_SELECTION_SIZE; i++) {
+        for (int i = 0; i < this.TournamentSize; i++) {
             int randomIndex = (int) (RANDOM.nextDouble() * population.size());
             newPopulation.saveIndividual(i, population.getIndividual(randomIndex));
         }

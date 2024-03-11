@@ -7,25 +7,34 @@ import org.example.GA.GeneticAlgorithm;
 import org.example.GA.OPTIMIZATION_TYPE;
 
 import java.util.Arrays;
+import java.util.Random;
+
+import static java.lang.Math.E;
 
 public class RouletteSelection implements iSelection {
+
+    private static final double T = 2;
     @Override
     public Individual selectIndividual(Population population) {
         Individual[] individuals = population.getIndividuals();
         double sumOfFitness;
 
 
-        if(GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) {
 
-            sumOfFitness = Arrays.stream(individuals).mapToDouble(Individual::getFitness).sum();
-        } else {
+        sumOfFitness = Arrays.stream(individuals).mapToDouble(Individual::getFitness).sum();
 
-            sumOfFitness = Arrays.stream(individuals).mapToDouble(ind -> 1.0 / Math.max(ind.getFitness(), 1e-6)).sum();
+        double sum = 0;
+        for (Individual individual : individuals) {
+            sum += Math.pow(Math.E, individual.getFitness() / T);
         }
 
+
         double[] probabilities = new double[individuals.length];
+
         for (int i = 0; i < individuals.length; i++) {
-            double fitness = individuals[i].getFitness();
+
+            double fitness = Math.pow(Math.E, individuals[i].getFitness() / T);
+
             if(GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) {
                 probabilities[i] = fitness / sumOfFitness;
             } else {
@@ -41,13 +50,16 @@ public class RouletteSelection implements iSelection {
             cumulativeProbabilities[i] = cumulative;
         }
 
-        double rand = Math.random();
+        int a = (int) cumulativeProbabilities.length -1;
+        double rand = new Random().nextDouble(a);
+
         for (int i = 0; i < cumulativeProbabilities.length; i++) {
             if (rand < cumulativeProbabilities[i]) {
                 return individuals[i];
             }
         }
 
-        return individuals[individuals.length - 1];
+
+        return population.getFittestIndividual();
     }
 }

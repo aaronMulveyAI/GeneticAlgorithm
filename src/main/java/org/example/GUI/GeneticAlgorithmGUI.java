@@ -76,7 +76,7 @@ public class GeneticAlgorithmGUI extends JFrame {
     int indexCrossover = 0;
 
     iSelection[] selectionMethods = new iSelection[] {
-            new TournamentSelection(),
+            new TournamentSelection(Constants.TOURNAMENT_SELECTION_SIZE),
             new RouletteSelection(),
             new TruncationSelection(0.5),
             new BrindleSelection()
@@ -116,7 +116,7 @@ public class GeneticAlgorithmGUI extends JFrame {
         add(displayPanel, BorderLayout.CENTER);
 
         // Inicializa la serie de datos
-        series = new XYSeries("Máximo Fitness");
+        series = new XYSeries("Maximun Fitness");
 
         // Crea un contenedor de datos
         XYSeriesCollection dataset = new XYSeriesCollection(series);
@@ -320,8 +320,15 @@ public class GeneticAlgorithmGUI extends JFrame {
                     // Simula un retraso si es necesario para ver la actualización en tiempo real
                     Thread.sleep(100); // Quitar o ajustar este retraso según sea necesario
                 }
+
+
+
                 return null;
+
+
             }
+
+
 
             @Override
             protected void process(List<Integer> chunks) {
@@ -342,6 +349,7 @@ public class GeneticAlgorithmGUI extends JFrame {
                     get(); // Llama a get para atrapar cualquier excepción que ocurra durante doInBackground
                     statusLabel.setText("All generations completed. Best fitness: " + population.getFittestIndividual().getFitness());
                 } catch (InterruptedException | ExecutionException e) {
+
                     System.out.println("Error in background task: no worries babe");
                 }
             }
@@ -352,9 +360,9 @@ public class GeneticAlgorithmGUI extends JFrame {
     private void initializeHistogram() {
         HistogramDataset dataset = new HistogramDataset();
         histogramChart = ChartFactory.createHistogram(
-                "Distribución de Fitness",
+                "Fitness Distribution",
                 "Fitness",
-                "Frecuencia",
+                "Frecuency",
                 dataset,
                 PlotOrientation.VERTICAL,
                 true,
@@ -375,9 +383,9 @@ public class GeneticAlgorithmGUI extends JFrame {
         dataset.addSeries("Fitness", fitnessValues, 10); // Ajusta el '10' según el número de bins que desees
 
         histogramChart = ChartFactory.createHistogram(
-                "Distribución de Fitness",
+                "Fitness Distribution",
                 "Fitness",
-                "Frecuencia",
+                "Frecuency",
                 dataset,
                 PlotOrientation.VERTICAL,
                 true,

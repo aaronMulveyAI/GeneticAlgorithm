@@ -9,7 +9,7 @@ public class TravelingSalesmanProblem extends AbstractProblem {
     public static double[][] distances;
 
     public TravelingSalesmanProblem(){
-        this(generateDistances(25));
+        this(generateDistances(50));
 
     }
 

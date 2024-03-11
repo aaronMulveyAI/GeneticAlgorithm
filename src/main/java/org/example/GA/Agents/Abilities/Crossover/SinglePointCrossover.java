@@ -57,8 +57,8 @@ public class SinglePointCrossover implements iReproduction {
         int currentPos = 0;
         for (int i = 0; i < childGenes.length; i++) {
             int gene = mother.getGenes()[i];
-            if (!containsGene(childGenes, gene)) {
-                // Encuentra la próxima posición no asignada
+            if (containsGene(childGenes, gene)) {
+
                 while (currentPos < childGenes.length && childGenes[currentPos] != -1) {
                     currentPos++;
                 }
