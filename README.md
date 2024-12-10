@@ -37,7 +37,7 @@ The framework supports a variety of problems, such as:
 - **iSelection and iReproduction Interfaces:** Modularize selection and crossover strategies.
 - **Constants Class:** Allows fine-tuning algorithm parameters like mutation rates and population size.
 
-![Description GIF 2](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/nqueens.gif?raw=true)
+![Description GIF 2](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/Nqueens.gif?raw=true)
 
 ### Genetic Operators
 The framework includes several selection methods (e.g., tournament, truncation) and crossover strategies (e.g., one-point, uniform). Although it currently implements bit-flip mutation, the design allows for additional mutations.
@@ -50,6 +50,8 @@ The intuitive GUI offers:
   - Fitness evolution graph.
   - Population heat map.
   - Best chromosome visualization.
+ 
+![Description GIF 2](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/number.gif?raw=true)
 
 ## Experimentation
 The software enables rigorous testing of genetic algorithm configurations. Experimentation evaluates:
