@@ -1,22 +1,71 @@
+# Genetic Algorithm Framework
+
 ## Introduction
-This project presents advanced software developed to solve complex problems through genetic algorithms. Inspired by natural selection and genetics, our software provides a generic framework that allows users to tackle optimization problems efficiently without delving into the complexities of algorithm implementation.
+This project presents advanced software designed to solve complex problems through genetic algorithms. Inspired by principles of natural selection and genetics, this framework enables users to tackle optimization problems efficiently without delving into the intricacies of algorithm implementation.
 
-![Descripción del GIF](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/GA.gif?raw=true)
-
-![Descripción del GIF](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/csp.gif?raw=true)
-
-![hola](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/Captura%20de%20pantalla%202024-11-14%20a%20las%2012.52.08.png?raw=true)
+![Description GIF 1](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/GA.gif?raw=true)
 
 
 ## Objectives
-- Develop a Generic Genetic Algorithm framework.
-- Facilitate problem modeling through a clear and concise interface.
-- Implement essential methods crucial for evaluating solutions, generating problems, and creating random solutions.
-- Demonstrate versatility and efficiency across a variety of optimization scenarios.
+- **Generic Framework Development:** Provide a robust platform for implementing genetic algorithms.
+- **Simplified Problem Modeling:** Allow users to focus on defining problems via a clear interface.
+- **Essential Method Implementation:** Incorporate key functionalities:
+  - `double solve(int[] solution)`: Evaluate a solution's fitness.
+  - `AbstractProblem generateRandom(int n)`: Generate random problem instances.
+  - `int[] sampleSolution()`: Initialize random solutions.
+- **Showcase Versatility and Efficiency:** Demonstrate applicability across diverse optimization problems.
+
+![Description GIF 2](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/csp.gif?raw=true)
+
 
 ## Methodology
-Our approach focuses on abstraction and flexibility, enabling the adaptation of the genetic algorithm to specific problems through the implementation of key methods:
-- `double solve(int[] solution)`: Evaluates the fitness of a solution.
-- `AbstractProblem generateRandom(int n)`: Generates random problem instances.
-- `int[] sampleSolution()`: Generates random solutions for initialization.
+The framework's design prioritizes abstraction and flexibility. Users customize key methods to adapt the genetic algorithm to specific problems, including:
+- **Fitness Evaluation:** `solve(int[] solution)` defines how solutions are scored.
+- **Random Problem Generation:** `generateRandom(int n)` creates problem instances.
+- **Initial Solution Sampling:** `sampleSolution()` generates the starting population.
+
+The framework supports a variety of problems, such as:
+- **Traveling Salesman Problem (TSP):** Models routes as arrays representing city order.
+- **Knapsack Problem (KP):** Uses binary encoding to represent item inclusion.
+- **N-Queens Problem (NQ):** Represents column positions of queens on a chessboard.
+- **Function Optimization (FO):** Encodes numbers for mathematical optimization.
+- **Sequence Matching (SM):** Matches generated sequences against a target.
+
+## Features
+### Modular Architecture
+- **AbstractProblem Class:** Facilitates problem-specific modeling.
+- **iSelection and iReproduction Interfaces:** Modularize selection and crossover strategies.
+- **Constants Class:** Allows fine-tuning algorithm parameters like mutation rates and population size.
+
+![Description GIF 2](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/nqueens.gif?raw=true)
+
+### Genetic Operators
+The framework includes several selection methods (e.g., tournament, truncation) and crossover strategies (e.g., one-point, uniform). Although it currently implements bit-flip mutation, the design allows for additional mutations.
+
+### Graphical User Interface (GUI)
+The intuitive GUI offers:
+- Problem selection and random instance generation.
+- Configurable selection, crossover methods, and parameters.
+- Real-time visualization of algorithm progress, including:
+  - Fitness evolution graph.
+  - Population heat map.
+  - Best chromosome visualization.
+
+## Experimentation
+The software enables rigorous testing of genetic algorithm configurations. Experimentation evaluates:
+- **Selection Methods:** Tournament, truncation, and roulette selection.
+- **Crossover Methods:** One-point, two-point, and uniform crossover.
+- **Problem Scenarios:** TSP, KP, and others.
+
+Each configuration undergoes multiple runs to assess convergence speed and solution quality.
+
+## Results and Insights
+Experiments highlight the importance of selecting the right configurations based on problem characteristics. For instance:
+- Uniform crossover with tournament selection excels in TSP.
+- Truncation selection outperforms in KP for faster convergence.
+
+## Conclusion
+This framework serves as a powerful tool for exploring and optimizing genetic algorithms. Its adaptability, combined with the GUI's experimentation capabilities, provides a comprehensive platform for solving a wide range of optimization problems.
+
+
 
