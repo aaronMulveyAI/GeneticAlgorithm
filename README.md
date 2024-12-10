@@ -3,6 +3,8 @@ This project presents advanced software developed to solve complex problems thro
 
 ![Descripción del GIF](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/GA.gif?raw=true)
 
+![Descripción del GIF](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/csp.gif?raw=true)
+
 ![hola](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/Captura%20de%20pantalla%202024-11-14%20a%20las%2012.52.08.png?raw=true)
 
 
