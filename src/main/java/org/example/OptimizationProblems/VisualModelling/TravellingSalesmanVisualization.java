@@ -22,11 +22,11 @@ public class TravellingSalesmanVisualization extends AbstractVisualization {
     @Override
     public void setPopulation(Population population){
         this.population = population;
-        this.distances = TravelingSalesmanProblem.distances;
+        this.distances = ((TravelingSalesmanProblem) population.getProblem()).getDistances();
         this.visitOrder = population.getFittestIndividual().getGenes();
 
         // Solo genera posiciones de nodo en la inicialización o reinicio
-        if(nodePositions == null || nodePositions.isEmpty()){
+        if(nodePositions == null || nodePositions.size() != distances.length){
             generateNodePositions();
         }
 
@@ -43,8 +43,8 @@ public class TravellingSalesmanVisualization extends AbstractVisualization {
 
         for (int i = 0; i < distances.length; i++) {
             // Asegúrate de dejar un margen para evitar que los nodos se dibujen demasiado cerca de los bordes
-            int x = 15 + random.nextInt(panelWidth - 100);
-            int y = 75 + random.nextInt(panelHeight - 100);
+            int x = 15 + random.nextInt(Math.max(1, panelWidth - 100));
+            int y = 75 + random.nextInt(Math.max(1, panelHeight - 100));
             nodePositions.put(i, new Point(x, y));
         }
     }
@@ -61,10 +61,10 @@ public class TravellingSalesmanVisualization extends AbstractVisualization {
         }
         this.visitOrder = population.getFittestIndividual().getGenes();
 
-        for (int i = 0; i < visitOrder.length - 1; i++) {
+        for (int i = 0; i < visitOrder.length; i++) {
             Point start = nodePositions.get(visitOrder[i]);
-            Point end = nodePositions.get(visitOrder[i + 1]);
-            double distance = distances[visitOrder[i]][visitOrder[i+1]];
+            Point end = nodePositions.get(visitOrder[(i + 1) % visitOrder.length]);
+            double distance = distances[visitOrder[i]][visitOrder[(i + 1) % visitOrder.length]];
 
             // Calcula la intensidad del color basado en la distancia
             float intensity = Math.min(1.0f, (float)distance / 5.0f); // Ajustar el divisor según el rango de tus distancias
@@ -140,6 +140,7 @@ public class TravellingSalesmanVisualization extends AbstractVisualization {
     @Override
     public void clear() {
         this.population = null;
+        nodePositions = null;
         repaint(); // Vuelve a dibujar el panel para limpiarlo
     }
 }

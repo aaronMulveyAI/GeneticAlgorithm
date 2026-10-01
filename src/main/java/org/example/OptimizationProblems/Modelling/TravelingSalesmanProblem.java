@@ -2,11 +2,12 @@ package org.example.OptimizationProblems.Modelling;
 
 import org.example.OptimizationProblems.OptimizationMethod;
 import org.example.OptimizationProblems.VisualModelling.TravellingSalesmanVisualization;
+import org.example.GA.OPTIMIZATION_TYPE;
 
 import static org.example.GA.Constants.RANDOM;
 
 public class TravelingSalesmanProblem extends AbstractProblem {
-    public static double[][] distances;
+    private final double[][] distances;
 
     public TravelingSalesmanProblem(){
         this(generateDistances(50));
@@ -15,7 +16,24 @@ public class TravelingSalesmanProblem extends AbstractProblem {
 
     public TravelingSalesmanProblem(double[][] distances) {
         super(new TravellingSalesmanVisualization(), "Traveling Salesman Problem", OptimizationMethod.PERMUTATION, distances.length);
-        TravelingSalesmanProblem.distances = distances;
+        this.distances = new double[distances.length][];
+        for (int i = 0; i < distances.length; i++) {
+            if (distances[i] == null || distances[i].length != distances.length) {
+                throw new IllegalArgumentException("Distance matrix must be square");
+            }
+            for (double distance : distances[i]) {
+                if (!Double.isFinite(distance) || distance < 0) {
+                    throw new IllegalArgumentException("Distances must be finite and nonnegative");
+                }
+            }
+            this.distances[i] = distances[i].clone();
+        }
+    }
+
+    @Override
+    public OPTIMIZATION_TYPE getOptimizationType() { return OPTIMIZATION_TYPE.MINIMIZE; }
+    public double[][] getDistances() {
+        return java.util.Arrays.stream(distances).map(double[]::clone).toArray(double[][]::new);
     }
 
 
@@ -26,8 +44,8 @@ public class TravelingSalesmanProblem extends AbstractProblem {
             solution[i] = i;
         }
 
-        for (int i = 0; i < this.getModelSize(); i++){
-            int indexToSwap = RANDOM.nextInt(this.getModelSize());
+        for (int i = solution.length - 1; i > 0; i--){
+            int indexToSwap = RANDOM.nextInt(i + 1);
             int temp = solution[i];
             solution[i] = solution[indexToSwap];
             solution[indexToSwap] = temp;
@@ -37,15 +55,12 @@ public class TravelingSalesmanProblem extends AbstractProblem {
 
     @Override
     public double solve(int[] solution) {
+        validateSolution(solution);
         double totalDistance = 0;
         for (int i = 0; i < solution.length - 1; i++) {
-            if (solution[i] >= 0 && solution[i + 1] >= 0) {
-                totalDistance += distances[solution[i]][solution[i + 1]];
-            }
+            totalDistance += distances[solution[i]][solution[i + 1]];
         }
-        if (solution[solution.length - 1] >= 0 && solution[0] >= 0) {
-            totalDistance += distances[solution[solution.length - 1]][solution[0]];
-        }
+        totalDistance += distances[solution[solution.length - 1]][solution[0]];
         return totalDistance;
     }
 
@@ -54,6 +69,7 @@ public class TravelingSalesmanProblem extends AbstractProblem {
     }
 
     public static double[][] generateDistances(int n) {
+        if (n < 1) throw new IllegalArgumentException("Problem size must be positive");
 
         double[][] distances = new double[n][n];
         for (int i = 0; i < n; i++) {

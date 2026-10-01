@@ -2,62 +2,58 @@ package org.example.GA.Agents;
 
 import org.example.OptimizationProblems.Modelling.AbstractProblem;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class Individual {
-    public int[] genes;
-    private double fitness = 0;
-    private AbstractProblem problem;
+    private int[] genes;
+    private double fitness;
+    private boolean fitnessValid;
+    private final AbstractProblem problem;
 
-    public Individual(AbstractProblem problem){
-        this.problem = problem;
-        this.genes = new int[problem.getModelSize()];
-        initializeGenes();
+    public Individual(AbstractProblem problem) {
+        this(problem, problem.sampleSolution());
     }
 
-    /**
-     * Initialize genes with random values
-     */
-    private void initializeGenes(){
-
-        this.genes = problem.sampleSolution();
-        this.fitness = problem.solve(genes);
+    public Individual(AbstractProblem problem, int[] genes) {
+        this.problem = Objects.requireNonNull(problem);
+        setGenes(genes);
     }
 
-    /**
-     * Calculate fitness of individual
-     * @return fitness of individual
-     */
-    public double calculateFitness(){
-        this.fitness = problem.solve(genes);
-        return problem.solve(genes);
-    }
+    public double calculateFitness() { return getFitness(); }
 
-    /**
-     * Set gene
-     * @param position position to set gene
-     * @param gene gene to set
-     */
     public void setGene(int position, int gene) {
+        if (gene < 0 || gene >= problem.getGeneValueCount()) {
+            throw new IllegalArgumentException("Gene outside the problem domain");
+        }
         genes[position] = gene;
-    }
-    public void setGenes(int[] genes) {
-        this.genes = genes;
-    }
-    public double getFitness() {return problem.solve(genes);}
-    public int[] getGenes() {
-        return genes;
-    }
-    public AbstractProblem getProblem() {
-        return problem;
+        fitnessValid = false;
     }
 
-    public int getGene(int index){return genes[index];}
+    public void setGenes(int[] genes) {
+        problem.validateSolution(genes);
+        this.genes = genes.clone();
+        fitnessValid = false;
+    }
+
+    public double getFitness() {
+        if (!fitnessValid) {
+            problem.validateSolution(genes);
+            fitness = problem.solve(genes);
+            if (!Double.isFinite(fitness)) {
+                throw new IllegalStateException("Fitness must be finite");
+            }
+            fitnessValid = true;
+        }
+        return fitness;
+    }
+
+    public int[] getGenes() { return genes.clone(); }
+    public AbstractProblem getProblem() { return problem; }
+    public int getGene(int index) { return genes[index]; }
+    public Individual copy() { return new Individual(problem, genes); }
 
     @Override
     public String toString() {
-        return "Individual {" +
-                "genes=" + Arrays.toString(genes) +
-                ", fitness=" + fitness +
-                '}';
+        return "Individual {genes=" + Arrays.toString(genes) + ", fitness=" + getFitness() + '}';
     }
 }

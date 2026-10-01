@@ -3,10 +3,10 @@ package org.example.OptimizationProblems.VisualModelling;
 import org.example.GA.Agents.Population;
 import javax.swing.*;
 import java.awt.*;
-import static org.example.OptimizationProblems.Modelling.NQueensProblem.BOARD_SIZE;
 
 public class NQueensVisualization extends AbstractVisualization {
     private int[] queensPositions; // Almacena las posiciones de las reinas
+    private int BOARD_SIZE = 8;
 
     public NQueensVisualization() {
     }
@@ -14,6 +14,7 @@ public class NQueensVisualization extends AbstractVisualization {
     @Override
     public void setPopulation(Population population) {
         if (population != null) {
+            BOARD_SIZE = population.getProblem().getModelSize();
             queensPositions = population.getFittestIndividual().getGenes();
         } else {
             queensPositions = null;

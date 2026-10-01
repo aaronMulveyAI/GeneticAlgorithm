@@ -24,7 +24,7 @@ public class CircularTSPVisualization extends AbstractVisualization {
     @Override
     public void setPopulation(Population population){
         this.population = population;
-        this.distances = CircularTSProblem.distances;
+        this.distances = ((CircularTSProblem) population.getProblem()).getDistances();
         this.visitOrder = population.getFittestIndividual().getGenes();
 
         // Solo genera posiciones de nodo en la inicialización o reinicio
@@ -64,6 +64,7 @@ public class CircularTSPVisualization extends AbstractVisualization {
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
+        if (population != null) generateNodePositions();
         drawGraph(g);
     }
 
@@ -73,10 +74,10 @@ public class CircularTSPVisualization extends AbstractVisualization {
         }
         this.visitOrder = population.getFittestIndividual().getGenes();
 
-        for (int i = 0; i < visitOrder.length - 1; i++) {
+        for (int i = 0; i < visitOrder.length; i++) {
             Point start = nodePositions.get(visitOrder[i]);
-            Point end = nodePositions.get(visitOrder[i + 1]);
-            double distance = distances[visitOrder[i]][visitOrder[i+1]];
+            Point end = nodePositions.get(visitOrder[(i + 1) % visitOrder.length]);
+            double distance = distances[visitOrder[i]][visitOrder[(i + 1) % visitOrder.length]];
 
             // Calcula la intensidad del color basado en la distancia
             float intensity = Math.min(1.0f, (float)distance / 5.0f); // Ajustar el divisor según el rango de tus distancias
@@ -149,7 +150,7 @@ public class CircularTSPVisualization extends AbstractVisualization {
     @Override
     public void clear() {
         this.population = null;
+        nodePositions = null;
         repaint(); // Vuelve a dibujar el panel para limpiarlo
     }
 }
-

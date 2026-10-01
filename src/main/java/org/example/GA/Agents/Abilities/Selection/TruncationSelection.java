@@ -3,35 +3,28 @@ package org.example.GA.Agents.Abilities.Selection;
 import org.example.GA.Agents.Abilities.iSelection;
 import org.example.GA.Agents.Individual;
 import org.example.GA.Agents.Population;
-import org.example.GA.GeneticAlgorithm;
 import org.example.GA.OPTIMIZATION_TYPE;
-
 import java.util.Arrays;
 import java.util.Comparator;
+import static org.example.GA.Constants.RANDOM;
 
 public class TruncationSelection implements iSelection {
-    private double truncationThreshold = 0.5;
-    static int i = 0;
+    private final double truncationThreshold;
 
     public TruncationSelection(double threshold) {
+        if (!Double.isFinite(threshold) || threshold <= 0 || threshold > 1) {
+            throw new IllegalArgumentException("Truncation threshold must be in (0, 1]");
+        }
         this.truncationThreshold = threshold;
     }
 
     @Override
     public Individual selectIndividual(Population population) {
-
-        Individual[] sortedIndividuals = Arrays.copyOf(population.getIndividuals(), population.size());
-
-        if(GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE){
-            Arrays.sort(sortedIndividuals, (i1, i2) -> Double.compare(i2.getFitness(), i1.getFitness()));
-        }else{
-            Arrays.sort(sortedIndividuals, Comparator.comparingDouble(Individual::getFitness));
-        }
-
-        int numberOfSelected = (int) (truncationThreshold * population.size());
-
-        Individual selectedIndividual = sortedIndividuals[i % numberOfSelected];
-        i = (i + 1) % numberOfSelected;
-        return selectedIndividual;
+        Individual[] sorted = population.getIndividuals();
+        Comparator<Individual> order = Comparator.comparingDouble(Individual::getFitness);
+        if (population.getOptimizationType() == OPTIMIZATION_TYPE.MAXIMIZE) order = order.reversed();
+        Arrays.sort(sorted, order);
+        int count = Math.max(1, (int) (truncationThreshold * population.size()));
+        return sorted[RANDOM.nextInt(count)];
     }
 }

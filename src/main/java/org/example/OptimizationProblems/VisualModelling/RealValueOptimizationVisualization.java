@@ -1,6 +1,7 @@
 package org.example.OptimizationProblems.VisualModelling;
 
 import org.example.GA.Agents.Population;
+import org.example.OptimizationProblems.Modelling.RealValueOptimizationProblem;
 import java.awt.*;
 import javax.swing.*;
 
@@ -27,8 +28,8 @@ public class RealValueOptimizationVisualization extends AbstractVisualization {
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
         drawAxes(g);
-        drawFunction(g);
         if (population != null) {
+            drawFunction(g);
             drawFittestIndividual(g);
         }
     }
@@ -39,10 +40,11 @@ public class RealValueOptimizationVisualization extends AbstractVisualization {
         g2d.setStroke(new BasicStroke(1.0f)); // Línea más fina
 
         int prevX = mapToScreenX(minX);
-        int prevY = mapToScreenY(objectiveFunction.apply(minX));
+        RealValueOptimizationProblem problem = (RealValueOptimizationProblem) population.getProblem();
+        int prevY = mapToScreenY(problem.evaluate(minX));
 
         for (double x = minX + 0.1; x <= maxX; x += 0.1) {
-            double y = objectiveFunction.apply(x);
+            double y = problem.evaluate(x);
 
             int plotX = mapToScreenX(x);
             int plotY = mapToScreenY(y);
@@ -57,8 +59,9 @@ public class RealValueOptimizationVisualization extends AbstractVisualization {
     private void drawFittestIndividual(Graphics g) {
         if (population.getFittestIndividual() == null) return;
 
-        double realValue = binaryToReal(population.getFittestIndividual().getGenes());
-        double y = objectiveFunction.apply(realValue);
+        RealValueOptimizationProblem problem = (RealValueOptimizationProblem) population.getProblem();
+        double realValue = problem.binaryToReal(population.getFittestIndividual().getGenes());
+        double y = problem.evaluate(realValue);
 
         int plotX = mapToScreenX(realValue);
         int plotY = mapToScreenY(y);
@@ -83,16 +86,6 @@ public class RealValueOptimizationVisualization extends AbstractVisualization {
     private int mapToScreenY(double y) {
         double padding = 0.1 * getHeight(); // Agrega un poco de padding
         return (int) (((maxY - y) / (maxY - minY)) * (getHeight() - 2 * padding) + padding);
-    }
-
-    private double binaryToReal(int[] binary) {
-        long value = 0;
-        for (int i = 0; i < binary.length; i++) {
-            if (binary[i] == 1) {
-                value += Math.pow(2, binary.length - i - 1);
-            }
-        }
-        return minX + ((maxX - minX) / (Math.pow(2, binary.length) - 1)) * value;
     }
 
     @Override

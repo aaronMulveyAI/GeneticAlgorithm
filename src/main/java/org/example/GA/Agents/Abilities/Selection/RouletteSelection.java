@@ -3,63 +3,55 @@ package org.example.GA.Agents.Abilities.Selection;
 import org.example.GA.Agents.Abilities.iSelection;
 import org.example.GA.Agents.Individual;
 import org.example.GA.Agents.Population;
-import org.example.GA.GeneticAlgorithm;
 import org.example.GA.OPTIMIZATION_TYPE;
-
 import java.util.Arrays;
-import java.util.Random;
-
-import static java.lang.Math.E;
+import static org.example.GA.Constants.RANDOM;
 
 public class RouletteSelection implements iSelection {
-
-    private static final double T = 2;
     @Override
     public Individual selectIndividual(Population population) {
-        Individual[] individuals = population.getIndividuals();
-        double sumOfFitness;
+        double[] weights = selectionWeights(population);
+        return population.getIndividual(draw(weights));
+    }
 
-
-
-        sumOfFitness = Arrays.stream(individuals).mapToDouble(Individual::getFitness).sum();
-
-        double sum = 0;
-        for (Individual individual : individuals) {
-            sum += Math.pow(Math.E, individual.getFitness() / T);
+    static double[] selectionWeights(Population population) {
+        double[] weights = new double[population.size()];
+        double scale = 0;
+        for (int i = 0; i < weights.length; i++) {
+            weights[i] = population.getIndividual(i).getFitness();
+            scale = Math.max(scale, Math.abs(weights[i]));
         }
-
-
-        double[] probabilities = new double[individuals.length];
-
-        for (int i = 0; i < individuals.length; i++) {
-
-            double fitness = Math.pow(Math.E, individuals[i].getFitness() / T);
-
-            if(GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) {
-                probabilities[i] = fitness / sumOfFitness;
-            } else {
-                probabilities[i] = (1.0 / Math.max(fitness, 1e-6)) / sumOfFitness;
-            }
+        if (scale == 0) {
+            Arrays.fill(weights, 1);
+            return weights;
         }
-
-
-        double[] cumulativeProbabilities = new double[individuals.length];
-        double cumulative = 0;
-        for (int i = 0; i < individuals.length; i++) {
-            cumulative += probabilities[i];
-            cumulativeProbabilities[i] = cumulative;
+        double minimum = Double.POSITIVE_INFINITY;
+        double maximum = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i < weights.length; i++) {
+            weights[i] /= scale;
+            minimum = Math.min(minimum, weights[i]);
+            maximum = Math.max(maximum, weights[i]);
         }
-
-        int a = (int) cumulativeProbabilities.length -1;
-        double rand = new Random().nextDouble(a);
-
-        for (int i = 0; i < cumulativeProbabilities.length; i++) {
-            if (rand < cumulativeProbabilities[i]) {
-                return individuals[i];
-            }
+        if (minimum == maximum) {
+            Arrays.fill(weights, 1);
+            return weights;
         }
+        // Scale first to avoid overflow, then make every sampling weight positive.
+        for (int i = 0; i < weights.length; i++) {
+            weights[i] = population.getOptimizationType() == OPTIMIZATION_TYPE.MINIMIZE
+                    ? maximum - weights[i] + 1e-12
+                    : weights[i] - Math.min(minimum, 0) + 1e-12;
+        }
+        return weights;
+    }
 
-
-        return population.getFittestIndividual();
+    static int draw(double[] weights) {
+        double total = Arrays.stream(weights).sum();
+        double target = RANDOM.nextDouble() * total;
+        for (int i = 0; i < weights.length; i++) {
+            target -= weights[i];
+            if (target < 0) return i;
+        }
+        return weights.length - 1;
     }
 }

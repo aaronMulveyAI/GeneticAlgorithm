@@ -2,9 +2,6 @@ package org.example.GA.Agents.Abilities.Crossover;
 
 import org.example.GA.Agents.Abilities.iReproduction;
 import org.example.GA.Agents.Individual;
-
-import java.util.Arrays;
-
 import static org.example.GA.Constants.RANDOM;
 
 public class DoublePointCrossover implements iReproduction {
@@ -16,66 +13,25 @@ public class DoublePointCrossover implements iReproduction {
         };
     }
 
-    public Individual crossoverCombination(Individual father, Individual mother){
-        Individual child = new Individual(father.getProblem());
-
-        int crossoverPoint1 = RANDOM.nextInt(child.getGenes().length);
-        int crossoverPoint2 = RANDOM.nextInt(child.getGenes().length);
-
-
-        if (crossoverPoint1 > crossoverPoint2) {
-            int temp = crossoverPoint1;
-            crossoverPoint1 = crossoverPoint2;
-            crossoverPoint2 = temp;
-        }
-
-        for (int i = 0; i < child.getGenes().length; i++) {
-            if (i > crossoverPoint1 && i < crossoverPoint2) {
-                child.setGene(i, father.getGenes()[i]);
-            } else {
-                child.setGene(i, mother.getGenes()[i]);
-            }
-        }
-
-        return child;
+    private int[] points(int length) {
+        int first = RANDOM.nextInt(length + 1);
+        int second = RANDOM.nextInt(length);
+        if (second >= first) second++;
+        return new int[]{Math.min(first, second), Math.max(first, second)};
     }
 
-     public Individual crossoverPermutation(Individual father, Individual mother){
-        Individual child = new Individual(father.getProblem());
-        int[] childGenes = new int[father.getGenes().length];
-        Arrays.fill(childGenes, -1);
-
-        int crossoverPoint1 = RANDOM.nextInt(child.getGenes().length);
-        int crossoverPoint2 = RANDOM.nextInt(child.getGenes().length);
-
-        if (crossoverPoint1 > crossoverPoint2) {
-            int temp = crossoverPoint1;
-            crossoverPoint1 = crossoverPoint2;
-            crossoverPoint2 = temp;
-        }
-
-
-        for (int i = crossoverPoint1; i <= crossoverPoint2; i++) {
-            childGenes[i] = father.getGenes()[i];
-        }
-
-
-        int currentPos = 0;
-        for (int i = 0; i < childGenes.length; i++) {
-            int gene = mother.getGenes()[i];
-            if (containsGene(childGenes, gene)) {
-
-                while (currentPos < childGenes.length && childGenes[currentPos] != -1) {
-                    currentPos++;
-                }
-                if (currentPos < childGenes.length) {
-                    childGenes[currentPos] = gene;
-                }
-            }
-        }
-
-        child.setGenes(childGenes);
-        return child;
+    @Override
+    public Individual crossoverCombination(Individual father, Individual mother) {
+        validateParents(father, mother);
+        int[] genes = mother.getGenes();
+        int[] points = points(genes.length);
+        for (int i = points[0]; i < points[1]; i++) genes[i] = father.getGene(i);
+        return new Individual(father.getProblem(), genes);
     }
 
+    @Override
+    public Individual crossoverPermutation(Individual father, Individual mother) {
+        int[] points = points(father.getProblem().getModelSize());
+        return orderedChild(father, mother, points[0], points[1]);
+    }
 }

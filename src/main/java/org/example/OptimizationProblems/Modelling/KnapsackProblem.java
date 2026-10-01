@@ -6,10 +6,9 @@ import org.example.OptimizationProblems.VisualModelling.KnapsackVisualization;
 import static org.example.GA.Constants.RANDOM;
 
 public class KnapsackProblem extends AbstractProblem {
-    public static int[] weights;
-    public static int[] values;
-    public static int maxWeight;
-    public int getMaxWeight;
+    private final int[] weights;
+    private final int[] values;
+    private final int maxWeight;
 
     public KnapsackProblem(){
 
@@ -20,12 +19,24 @@ public class KnapsackProblem extends AbstractProblem {
         );
     }
     public KnapsackProblem(int[] weights, int[] values, int maxWeight){
-        super(new KnapsackVisualization(values.length), "Knapsack AbstractProblem", OptimizationMethod.COMBINATORIAL, weights.length);
-        KnapsackProblem.weights = weights;
-        KnapsackProblem.values = values;
-        KnapsackProblem.maxWeight = maxWeight;
-        getMaxWeight = maxWeight;
+        super(new KnapsackVisualization(maxWeight), "Knapsack Problem", OptimizationMethod.COMBINATORIAL, weights.length);
+        if (weights.length != values.length || maxWeight < 0) {
+            throw new IllegalArgumentException("Weights and values must have equal length and capacity must be nonnegative");
+        }
+        for (int i = 0; i < weights.length; i++) {
+            if (weights[i] < 0 || values[i] < 0) {
+                throw new IllegalArgumentException("Weights and values must be nonnegative");
+            }
+        }
+        this.weights = weights.clone();
+        this.values = values.clone();
+        this.maxWeight = maxWeight;
     }
+
+    @Override
+    public int getGeneValueCount() { return 2; }
+    public int getWeight(int index) { return weights[index]; }
+    public int getMaxWeight() { return maxWeight; }
 
     @Override
     public int[] sampleSolution(){
@@ -38,8 +49,9 @@ public class KnapsackProblem extends AbstractProblem {
 
     @Override
     public double solve(int[] solution) {
-        int weight = 0;
-        int value = 0;
+        validateSolution(solution);
+        long weight = 0;
+        long value = 0;
 
         for (int i = 0; i < solution.length; i++) {
             if(solution[i] == 1){
@@ -58,6 +70,7 @@ public class KnapsackProblem extends AbstractProblem {
 
     @Override
     public KnapsackProblem generateRandom(int n) {
+        if (n < 1) throw new IllegalArgumentException("Problem size must be positive");
         int[] weights = new int[n];
         int[] values = new int[n];
         int totalWeight = 0;

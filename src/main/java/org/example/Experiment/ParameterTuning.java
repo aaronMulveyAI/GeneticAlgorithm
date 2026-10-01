@@ -1,327 +1,118 @@
 package org.example.Experiment;
 
-import org.example.GA.Agents.Abilities.*;
-import org.example.GA.Agents.Abilities.Crossover.DoublePointCrossover;
-import org.example.GA.Agents.Abilities.Crossover.SinglePointCrossover;
-import org.example.GA.Agents.Abilities.Crossover.UniformCrossover;
+import org.example.GA.Agents.Abilities.Crossover.*;
+import org.example.GA.Agents.Abilities.Selection.*;
+import org.example.GA.Agents.Abilities.iReproduction;
+import org.example.GA.Agents.Abilities.iSelection;
 import org.example.GA.Agents.Population;
-import org.example.GA.Constants;
 import org.example.GA.GeneticAlgorithm;
-import org.example.GA.OPTIMIZATION_TYPE;
 import org.example.OptimizationProblems.Modelling.*;
-import org.example.GA.Agents.Abilities.Selection.TournamentSelection;
-import org.example.GA.Agents.Abilities.Selection.RouletteSelection;
-import org.example.GA.Agents.Abilities.Selection.TruncationSelection;
-import org.example.GA.Agents.Abilities.Selection.BrindleSelection;
-
-import javax.swing.*;
-
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
-import static java.lang.Math.round;
-import static java.util.Arrays.stream;
-
 public class ParameterTuning {
+    private static final int GENERATIONS = 1000;
+    private static final int NUM_RUNS = 10;
 
-    private static GeneticAlgorithm ga;
-    private static Population population;
+    public record BenchmarkResult(double averageBestFitness, double averageBestGeneration,
+                                  double generationStandardDeviation) {}
 
     public static void main(String[] args) {
-
-
-        AbstractProblem[] problems = new AbstractProblem[] {
-                new TravelingSalesmanProblem(),
-                new KnapsackProblem(),
-                new NQueensProblem(),
-                new GuessNumberProblem(),
-                new RealValueOptimizationProblem(),
-                new CircularTSProblem()
+        AbstractProblem problem = new GuessNumberProblem();
+        iSelection[] selections = {
+                new RouletteSelection(), new TournamentSelection(10),
+                new TruncationSelection(0.5), new BrindleSelection()
         };
-
-        //testTournament(problems[2]);
-
-
-       AbstractProblem p = problems[3];
-        ga = new GeneticAlgorithm(p, new RouletteSelection(), new UniformCrossover());
-        testConvergence(p, ga);
-        ga = new GeneticAlgorithm(p, new RouletteSelection(), new SinglePointCrossover());
-        testConvergence(p, ga);
-        ga = new GeneticAlgorithm(p, new RouletteSelection(), new DoublePointCrossover());
-        testConvergence(p, ga);
-
-        ga = new GeneticAlgorithm(p, new TournamentSelection(10), new UniformCrossover());
-        testConvergence(p, ga);
-        ga = new GeneticAlgorithm(p, new TournamentSelection(10), new SinglePointCrossover());
-        testConvergence(p, ga);
-        ga = new GeneticAlgorithm(p, new TournamentSelection(10), new DoublePointCrossover());
-        testConvergence(p, ga);
-
-
-        ga = new GeneticAlgorithm(p, new TruncationSelection(0.5), new UniformCrossover());
-        testConvergence(p, ga);
-        ga = new GeneticAlgorithm(p, new TruncationSelection(0.5), new SinglePointCrossover());
-        testConvergence(p, ga);
-        ga = new GeneticAlgorithm(p, new TruncationSelection(0.5), new DoublePointCrossover());
-        testConvergence(p, ga);
-
-    }
-
-    public static void testConvergence(AbstractProblem problem, GeneticAlgorithm ga) {
-        System.out.println(1);
-
-        final int GENERATIONS = 1000;
-        final int NUM_RUNS = 10; // Number of times to run the test with each crossover rate
-        double totalFitness = 0.0;  // Accumulate fitness across all runs
-        double totalSquaredDeviations = 0.0;  // Accumulate squared deviations for standard deviation (generations)
-        int bestGenerations = 0;  // Store generation of best fitness for each run
-
-        int[] convergenceGenerations = new int[NUM_RUNS];
-
-        DecimalFormat df = new DecimalFormat("#.##");
-        df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(new Locale("en", "US")));
-
-        for (int run = 0; run < NUM_RUNS; run++) {
-            ga = new GeneticAlgorithm(problem, ga.selectionMethod, ga.reproductionMethod);
-            population = new Population(problem, 100);
-
-            double maxFitness = (GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-            int maxFitFoundInGeneration = 0;
-
-            for (int i = 0; i < GENERATIONS; i++) {
-                population = ga.evolve(population);
-                double fitness = population.getFittestIndividual().getFitness();
-                switch (GeneticAlgorithm.optimizationType) {
-                    case MAXIMIZE:
-                        if (fitness > maxFitness) {
-                            maxFitness = fitness;
-                            maxFitFoundInGeneration = i;
-                        }
-                        break;
-                    case MINIMIZE:
-                        if (fitness < maxFitness) {
-                            maxFitness = fitness;
-                            maxFitFoundInGeneration = i;
-                        }
-                        break;
-
-                }
-
+        iReproduction[] crossovers = {
+                new UniformCrossover(), new SinglePointCrossover(), new DoublePointCrossover()
+        };
+        for (iSelection selection : selections) {
+            for (iReproduction crossover : crossovers) {
+                System.out.println(selection.getClass().getSimpleName() + " / " + crossover.getClass().getSimpleName());
+                testConvergence(problem, new GeneticAlgorithm(problem, selection, crossover));
             }
-
-            convergenceGenerations[run] = maxFitFoundInGeneration;
-            totalFitness += maxFitness;  // Accumulate fitness for this run
-            bestGenerations += maxFitFoundInGeneration;  // Store generation of best fitness
-            System.out.println(maxFitFoundInGeneration);
         }
-
-        double meanGeneration = stream(convergenceGenerations).average().getAsDouble();
-
-        double variance = 0;
-
-        for (int i = 0; i < convergenceGenerations.length; i++) {
-            variance += (convergenceGenerations[i] - meanGeneration) * (convergenceGenerations[i] - meanGeneration);
-        }
-        variance = variance / (NUM_RUNS - 1);
-
-        double SD = Math.sqrt(variance);  // Calculate deviation from average generation
-
-        double deviation = bestGenerations - ((double) bestGenerations / NUM_RUNS);  // Calculate deviation from average generation
-        totalSquaredDeviations += deviation * deviation;  // Accumulate squared deviation
-
-        // Calculate average fitness and standard deviation of generations
-        double averageGeneration = totalFitness / NUM_RUNS;
-        double standardDeviationGeneration = Math.sqrt(totalSquaredDeviations / (NUM_RUNS - 1));
-
-        // Print results
-        System.out.println("Average Fitness: " + df.format(meanGeneration));
-        System.out.println("Standard Deviation (Generations): " + df.format(SD));
-
     }
 
+    public static BenchmarkResult benchmark(AbstractProblem problem, GeneticAlgorithm algorithm,
+                                            int runs, int generations, int populationSize) {
+        if (runs < 1 || generations < 0 || populationSize < 1 || algorithm.problem != problem) {
+            throw new IllegalArgumentException("Invalid benchmark parameters");
+        }
+        double totalFitness = 0;
+        double totalGeneration = 0;
+        int[] bestGenerations = new int[runs];
+        for (int run = 0; run < runs; run++) {
+            Population population = new Population(problem, populationSize);
+            double bestFitness = population.getFittestIndividual().getFitness();
+            int bestGeneration = 0;
+            for (int generation = 1; generation <= generations; generation++) {
+                population = algorithm.evolve(population);
+                double fitness = population.getFittestIndividual().getFitness();
+                if (population.isBetter(fitness, bestFitness)) {
+                    bestFitness = fitness;
+                    bestGeneration = generation;
+                }
+            }
+            bestGenerations[run] = bestGeneration;
+            totalFitness += bestFitness;
+            totalGeneration += bestGeneration;
+        }
+        double meanGeneration = totalGeneration / runs;
+        double squaredDeviations = 0;
+        for (int generation : bestGenerations) {
+            squaredDeviations += Math.pow(generation - meanGeneration, 2);
+        }
+        double standardDeviation = runs == 1 ? 0 : Math.sqrt(squaredDeviations / (runs - 1));
+        return new BenchmarkResult(totalFitness / runs, meanGeneration, standardDeviation);
+    }
 
+    public static void testConvergence(AbstractProblem problem, GeneticAlgorithm algorithm) {
+        BenchmarkResult result = benchmark(problem, algorithm, NUM_RUNS, GENERATIONS, 100);
+        System.out.printf(Locale.US, "Average Best Fitness: %.2f%n", result.averageBestFitness());
+        System.out.printf(Locale.US, "Average Generation of First Best Fitness: %.2f%n", result.averageBestGeneration());
+        System.out.printf(Locale.US, "Standard Deviation (Generations): %.2f%n", result.generationStandardDeviation());
+    }
 
     public static void testMutation(AbstractProblem problem) {
-
-        final int GENERATIONS = 1000;
-        final int NUM_RUNS = 10; // Number of times to run the test with each crossover rate
-
-        StringBuilder mutation = new StringBuilder("mutationTuning <- c(");  // Initialize output string
-        StringBuilder avgMutation = new StringBuilder("avgMutation <- c(");
-        Constants.CROSSOVER_RATE = 0;
-        DecimalFormat df = new DecimalFormat("#.##");
-        df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(new Locale("en", "US")));
-
-        for (int x = 0; x < 50; x++) {
-            Constants.CROSSOVER_RATE += 0.01;
-
-            double totalFitness = 0.0;  // Reset total fitness for each crossover rate
-
-            for (int run = 0; run < NUM_RUNS; run++) {
-                ga = new GeneticAlgorithm(problem, new TournamentSelection(5), new SinglePointCrossover());
-                population = new Population(problem, 100);
-
-                double maxFitness = (GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-                int maxFitFoundInGeneration = 0;
-
-                for (int i = 0; i < GENERATIONS; i++) {
-                    population = ga.evolve(population);
-                    double fitness = population.getFittestIndividual().getFitness();
-                    switch (GeneticAlgorithm.optimizationType) {
-                        case MAXIMIZE:
-                            if (fitness > maxFitness) {
-                                maxFitness = fitness;
-                                maxFitFoundInGeneration = i;
-                            }
-                            break;
-                        case MINIMIZE:
-                            if (fitness < maxFitness) {
-                                maxFitness = fitness;
-                                maxFitFoundInGeneration = i;
-                            }
-                            break;
-
-                    }
-                }
-
-                totalFitness += maxFitFoundInGeneration;  // Accumulate fitness for this run
-            }
-
-            // Calculate average fitness and append to output string
-            double averageFitness = totalFitness / NUM_RUNS;
-            mutation.append(df.format(Constants.CROSSOVER_RATE)).append(", ");
-            avgMutation.append(df.format(averageFitness)).append(", ");
-
-            System.out.println(mutation);
-            System.out.println(avgMutation);
-        }
-
-        mutation.append(")");  // Append closing bracket to output string
-        avgMutation.append(")");
-        System.out.println(mutation);  // Print output string
-        System.out.println(avgMutation);  // Print output string
+        rateSweep(problem, true);
     }
 
     public static void testCrossover(AbstractProblem problem) {
+        rateSweep(problem, false);
+    }
 
-        final int GENERATIONS = 1000;
-        final int NUM_RUNS = 10; // Number of times to run the test with each crossover rate
-
-        StringBuilder mutation = new StringBuilder("mutationTuning <- c(");  // Initialize output string
-        StringBuilder avgMutation = new StringBuilder("avgMutation <- c(");
-        Constants.CROSSOVER_RATE = 0;
-        DecimalFormat df = new DecimalFormat("#.##");
-        df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(new Locale("en", "US")));
-
-        for (int x = 0; x < 50; x++) {
-            Constants.CROSSOVER_RATE += 0.2;
-
-            double totalFitness = 0.0;  // Reset total fitness for each crossover rate
-
-            for (int run = 0; run < NUM_RUNS; run++) {
-                ga = new GeneticAlgorithm(problem, new TournamentSelection(5), new SinglePointCrossover());
-                population = new Population(problem, 100);
-
-                double maxFitness = (GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-                int maxFitFoundInGeneration = 0;
-
-                for (int i = 0; i < GENERATIONS; i++) {
-                    population = ga.evolve(population);
-                    double fitness = population.getFittestIndividual().getFitness();
-                    switch (GeneticAlgorithm.optimizationType) {
-                        case MAXIMIZE:
-                            if (fitness > maxFitness) {
-                                maxFitness = fitness;
-                                maxFitFoundInGeneration = i;
-                            }
-                            break;
-                        case MINIMIZE:
-                            if (fitness < maxFitness) {
-                                maxFitness = fitness;
-                                maxFitFoundInGeneration = i;
-                            }
-                            break;
-
-                    }
-                }
-
-                totalFitness += maxFitFoundInGeneration;  // Accumulate fitness for this run
-            }
-
-            // Calculate average fitness and append to output string
-            double averageFitness = totalFitness / NUM_RUNS;
-            mutation.append(df.format(Constants.CROSSOVER_RATE)).append(", ");
-            avgMutation.append(df.format(averageFitness)).append(", ");
-
-            System.out.println(mutation);
-            System.out.println(avgMutation);
+    private static void rateSweep(AbstractProblem problem, boolean mutation) {
+        StringBuilder parameters = new StringBuilder(mutation ? "mutationTuning <- c(" : "crossoverTuning <- c(");
+        StringBuilder averages = new StringBuilder("averageBestGeneration <- c(");
+        for (int step = 0; step <= 50; step++) {
+            double rate = step / 50.0;
+            GeneticAlgorithm algorithm = new GeneticAlgorithm(problem, new TournamentSelection(5),
+                    new SinglePointCrossover(), mutation ? 0.5 : rate, mutation ? rate : 0.1);
+            BenchmarkResult result = benchmark(problem, algorithm, NUM_RUNS, GENERATIONS, 100);
+            appendValue(parameters, rate, step > 0);
+            appendValue(averages, result.averageBestGeneration(), step > 0);
         }
-
-        mutation.append(")");  // Append closing bracket to output string
-        avgMutation.append(")");
-        System.out.println(mutation);  // Print output string
-        System.out.println(avgMutation);  // Print output string
+        System.out.println(parameters.append(')'));
+        System.out.println(averages.append(')'));
     }
 
     public static void testTournament(AbstractProblem problem) {
-
-        final int GENERATIONS = 1000;
-        final int NUM_RUNS = 10; // Number of times to run the test with each crossover rate
-
-        StringBuilder mutation = new StringBuilder("mutationTuning <- c(");  // Initialize output string
-        StringBuilder avgMutation = new StringBuilder("avgMutation <- c(");
-        Constants.CROSSOVER_RATE = 0.5;
-        DecimalFormat df = new DecimalFormat("#.##");
-        df.setDecimalFormatSymbols(DecimalFormatSymbols.getInstance(new Locale("en", "US")));
-        int n = 0;
-        for (int x = 0; x < 20; x++) {
-            n+= 3;
-
-            double totalFitness = 0.0;  // Reset total fitness for each crossover rate
-
-            for (int run = 0; run < NUM_RUNS; run++) {
-                ga = new GeneticAlgorithm(problem, new TournamentSelection(n), new SinglePointCrossover());
-                population = new Population(problem, 100);
-
-                double maxFitness = (GeneticAlgorithm.optimizationType == OPTIMIZATION_TYPE.MAXIMIZE) ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-                int maxFitFoundInGeneration = 0;
-
-                for (int i = 0; i < GENERATIONS; i++) {
-                    population = ga.evolve(population);
-                    double fitness = population.getFittestIndividual().getFitness();
-                    switch (GeneticAlgorithm.optimizationType) {
-                        case MAXIMIZE:
-                            if (fitness > maxFitness) {
-                                maxFitness = fitness;
-                                maxFitFoundInGeneration = i;
-                            }
-                            break;
-                        case MINIMIZE:
-                            if (fitness < maxFitness) {
-                                maxFitness = fitness;
-                                maxFitFoundInGeneration = i;
-                            }
-                            break;
-
-                    }
-                }
-
-                totalFitness += maxFitFoundInGeneration;  // Accumulate fitness for this run
-            }
-
-            // Calculate average fitness and append to output string
-            double averageFitness = totalFitness / NUM_RUNS;
-            mutation.append(df.format(n)).append(", ");
-            avgMutation.append(df.format(averageFitness)).append(", ");
-
-            System.out.println(mutation);
-            System.out.println(avgMutation);
+        StringBuilder sizes = new StringBuilder("tournamentSizes <- c(");
+        StringBuilder averages = new StringBuilder("averageBestGeneration <- c(");
+        for (int step = 1; step <= 20; step++) {
+            int size = step * 3;
+            GeneticAlgorithm algorithm = new GeneticAlgorithm(problem, new TournamentSelection(size),
+                    new SinglePointCrossover(), 0.5, 0.1);
+            BenchmarkResult result = benchmark(problem, algorithm, NUM_RUNS, GENERATIONS, 100);
+            appendValue(sizes, size, step > 1);
+            appendValue(averages, result.averageBestGeneration(), step > 1);
         }
+        System.out.println(sizes.append(')'));
+        System.out.println(averages.append(')'));
+    }
 
-        mutation.append(")");  // Append closing bracket to output string
-        avgMutation.append(")");
-        System.out.println(mutation);  // Print output string
-        System.out.println(avgMutation);  // Print output string
+    private static void appendValue(StringBuilder output, double value, boolean separator) {
+        if (separator) output.append(", ");
+        output.append(String.format(Locale.US, "%.2f", value));
     }
 }

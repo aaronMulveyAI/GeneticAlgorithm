@@ -6,22 +6,24 @@ import org.example.OptimizationProblems.VisualModelling.GuessNumberVisualization
 import static org.example.GA.Constants.RANDOM;
 
 public class GuessNumberProblem extends AbstractProblem {
-    public static int[] targetSequence;
-    public static int sequenceLength;
+    private final int[] targetSequence;
 
     public GuessNumberProblem() {
         this(10);
     }
     public GuessNumberProblem(int sequenceLength) {
         super(new GuessNumberVisualization(), "Guess Number Problem", OptimizationMethod.COMBINATORIAL, sequenceLength); // Asumimos un rango de 0 a 9 para cada número en la secuencia
-        GuessNumberProblem.sequenceLength = sequenceLength;
-        GuessNumberProblem.targetSequence = sampleSolution();
+        this.targetSequence = sampleSolution();
     }
 
     @Override
+    public int getGeneValueCount() { return 10; }
+    public int[] getTargetSequence() { return targetSequence.clone(); }
+
+    @Override
     public int[] sampleSolution() {
-        int[] solution = new int[sequenceLength];
-        for (int i = 0; i < sequenceLength; i++) {
+        int[] solution = new int[getModelSize()];
+        for (int i = 0; i < solution.length; i++) {
             solution[i] = RANDOM.nextInt(10);
         }
         return solution;
@@ -29,6 +31,7 @@ public class GuessNumberProblem extends AbstractProblem {
 
     @Override
     public double solve(int[] solution) {
+        validateSolution(solution);
         int matchScore = 0;
         for (int i = 0; i < solution.length; i++) {
             if (solution[i] == targetSequence[i]) {
@@ -43,4 +46,3 @@ public class GuessNumberProblem extends AbstractProblem {
         return new GuessNumberProblem(n);
     }
 }
-

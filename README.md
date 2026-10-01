@@ -40,7 +40,7 @@ The framework supports a variety of problems, such as:
 ![Description GIF 2](https://github.com/aaronMulveyAI/GeneticAlgorithm/blob/aaron/Nqueens.gif?raw=true)
 
 ### Genetic Operators
-The framework includes several selection methods (e.g., tournament, truncation) and crossover strategies (e.g., one-point, uniform). Although it currently implements bit-flip mutation, the design allows for additional mutations.
+The framework includes tournament, truncation, roulette and residual selection, plus one-point, two-point and uniform crossover. Mutation respects each problem's domain: bit flips, digit/column replacement or permutation swaps.
 
 ### Graphical User Interface (GUI)
 The intuitive GUI offers:
@@ -62,12 +62,38 @@ The software enables rigorous testing of genetic algorithm configurations. Exper
 Each configuration undergoes multiple runs to assess convergence speed and solution quality.
 
 ## Results and Insights
-Experiments highlight the importance of selecting the right configurations based on problem characteristics. For instance:
-- Uniform crossover with tournament selection excels in TSP.
-- Truncation selection outperforms in KP for faster convergence.
+Operator performance depends on the problem and its parameters. Run the corrected experiments before drawing conclusions about which configuration performs best. The reported best generation is the first generation that reached the best fitness observed during a run, not proof of convergence to the global optimum.
+
+## Build and Test
+
+Requires Java 17 or newer and Maven.
+
+```sh
+mvn test
+mvn package
+```
+
+Tests run without a display by default. To also run the desktop workflow tests on a machine with a graphical session:
+
+```sh
+mvn -Djava.awt.headless=false test
+```
+
+Run `org.example.GUI.GeneticAlgorithmGUI` from your IDE to open the simulator.
+
+## Algorithm Semantics
+
+- Each problem declares its optimization direction and gene domain independently of its encoding.
+- Knapsack and real-value chromosomes use bits; sequence matching uses digits; N-Queens uses board columns; TSP uses permutations.
+- Crossover rate is the probability of crossing a pair of parents. Uniform crossover chooses each parent's genes with equal probability.
+- Mutation rate applies per gene for combinatorial chromosomes and per chromosome for permutation swap mutation.
+- Each algorithm captures its rates at construction. The legacy `Constants` rates supply defaults only.
+- Problem data and chromosome arrays are copied to prevent changes in another instance from corrupting fitness. Fitness is cached until genes change.
+- The algorithm uses generational replacement without elitism, so the best fitness of a generation can regress.
+- Roulette and residual selection normalize finite fitness, support negative and equal scores, and favor the correct optimization direction.
+
+The core still uses a shared random generator and problem classes create Swing visualizations. A future web version should separate those visualizations and provide a random generator per execution for reproducible concurrent runs.
 
 ## Conclusion
 This framework serves as a powerful tool for exploring and optimizing genetic algorithms. Its adaptability, combined with the GUI's experimentation capabilities, provides a comprehensive platform for solving a wide range of optimization problems.
-
-
 

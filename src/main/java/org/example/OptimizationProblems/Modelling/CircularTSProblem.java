@@ -2,11 +2,12 @@ package org.example.OptimizationProblems.Modelling;
 
 import org.example.OptimizationProblems.OptimizationMethod;
 import org.example.OptimizationProblems.VisualModelling.CircularTSPVisualization;
+import org.example.GA.OPTIMIZATION_TYPE;
 
 import static org.example.GA.Constants.RANDOM;
 
 public class CircularTSProblem extends AbstractProblem {
-    public static double[][] distances;
+    private final double[][] distances;
 
 
     public CircularTSProblem() {
@@ -16,6 +17,12 @@ public class CircularTSProblem extends AbstractProblem {
     public CircularTSProblem(int numberOfCities) {
         super(new CircularTSPVisualization(), "Circular Traveling Salesman Problem", OptimizationMethod.PERMUTATION, numberOfCities);
         distances = generateCircularDistances(numberOfCities);
+    }
+
+    @Override
+    public OPTIMIZATION_TYPE getOptimizationType() { return OPTIMIZATION_TYPE.MINIMIZE; }
+    public double[][] getDistances() {
+        return java.util.Arrays.stream(distances).map(double[]::clone).toArray(double[][]::new);
     }
 
     public int[] sampleSolution(){
@@ -35,6 +42,7 @@ public class CircularTSProblem extends AbstractProblem {
 
     @Override
     public double solve(int[] solution) {
+        validateSolution(solution);
         double totalDistance = 0;
         for (int i = 0; i < solution.length - 1; i++) {
             totalDistance += distances[solution[i]][solution[i + 1]];

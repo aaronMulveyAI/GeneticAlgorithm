@@ -1,42 +1,34 @@
 package org.example.GUI;
-import org.example.GA.Agents.Abilities.Crossover.DoublePointCrossover;
-import org.example.GA.Agents.Abilities.Crossover.SinglePointCrossover;
-import org.example.GA.Agents.Abilities.Crossover.UniformCrossover;
-import org.example.GA.Agents.Abilities.Selection.BrindleSelection;
-import org.example.GA.Agents.Abilities.Selection.RouletteSelection;
-import org.example.GA.Agents.Abilities.Selection.TournamentSelection;
-import org.example.GA.Agents.Abilities.Selection.TruncationSelection;
-import org.example.GA.Agents.Abilities.iReproduction;
+
+import org.example.GA.Agents.Abilities.Crossover.*;
+import org.example.GA.Agents.Abilities.Selection.*;
 import org.example.GA.Agents.Abilities.iSelection;
+import org.example.GA.Agents.Abilities.iReproduction;
 import org.example.GA.Agents.Population;
-import org.example.GA.Constants;
 import org.example.GA.GeneticAlgorithm;
 import org.example.OptimizationProblems.Modelling.*;
-import org.example.OptimizationProblems.VisualModelling.*;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.statistics.HistogramDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-
 
 import javax.swing.*;
 import java.awt.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-
-
 public class GeneticAlgorithmGUI extends JFrame {
-
-
-    private static GeneticAlgorithm ga;
-    private static Population population;
+    private GeneticAlgorithm ga;
+    private Population population;
     private PopulationPanel populationPanel;
     private XYSeries series;
+    private ChartPanel histogramPanel;
+    private JPanel displayPanel;
+    private SwingWorker<Population, GenerationUpdate> worker;
+    private int generations;
 
     public JComboBox<String> problemComboBox;
     public JComboBox<String> crossoverTypeComboBox;
@@ -49,367 +41,264 @@ public class GeneticAlgorithmGUI extends JFrame {
     public JButton runNGenerationsButton = new JButton("Run N Generations");
     public JButton runForTimeButton = new JButton("Random Problem");
     public JButton restartAlgorithmButton = new JButton("Restart Algorithm");
-
-    JPanel sidePanel = new JPanel(new GridLayout(0, 1, 0, 0)); // Modificamos para acomodar más elementos con menos espacio entre ellos
-
-    JPanel statusPanel = new JPanel();
     public JLabel statusLabel = new JLabel("Status: Ready");
-    int generatiosn = 0;
-
-    AbstractProblem[] problems = new AbstractProblem[] {
-            new TravelingSalesmanProblem(),
-            new KnapsackProblem(),
-            new NQueensProblem(),
-            new GuessNumberProblem(),
-            new RealValueOptimizationProblem(),
-            new CircularTSProblem()
+    private final JPanel sidePanel = new JPanel(new GridLayout(0, 1));
+    private final AbstractProblem[] problems = {
+            new TravelingSalesmanProblem(), new KnapsackProblem(), new NQueensProblem(),
+            new GuessNumberProblem(), new RealValueOptimizationProblem(), new CircularTSProblem()
+    };
+    private final iReproduction[] reproductionMethods = {
+            new SinglePointCrossover(), new DoublePointCrossover(), new UniformCrossover()
     };
 
-    int indexProblems = 0;
-
-    iReproduction[] reproductionMethods = new iReproduction[] {
-        new SinglePointCrossover(),
-        new DoublePointCrossover(),
-        new UniformCrossover()
-    };
-
-    int indexCrossover = 0;
-
-    iSelection[] selectionMethods = new iSelection[] {
-            new TournamentSelection(Constants.TOURNAMENT_SELECTION_SIZE),
-            new RouletteSelection(),
-            new TruncationSelection(0.5),
-            new BrindleSelection()
-
-    };
-
-    private JFreeChart histogramChart;
-    private ChartPanel histogramPanel;
-    private JFreeChart chart;
-
-
-    int indexSelection = 0;
+    private record GenerationUpdate(int generation, double fitness, Population population) {}
 
     public GeneticAlgorithmGUI() {
         setTitle("Genetic Algorithm Simulator");
-        setSize(1500, 1000); // Ajustamos el tamaño inicial de la ventana
+        setSize(1500, 1000);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout()); // Usamos BorderLayout como layout principal
-        setBackground(Color.WHITE);
-
-
+        setLayout(new BorderLayout());
         sidePanel();
         add(sidePanel, BorderLayout.WEST);
-
+        JPanel statusPanel = new JPanel();
         statusPanel.setBorder(BorderFactory.createEtchedBorder());
-        add(statusPanel, BorderLayout.SOUTH);
         statusPanel.add(statusLabel);
-
+        add(statusPanel, BorderLayout.SOUTH);
         plots();
-
     }
-    public void plots(){
 
-        JPanel displayPanel = new JPanel(new GridLayout(2, 2)); // Organiza en 2 filas y 2 columnas
+    public void plots() {
+        if (displayPanel != null) remove(displayPanel);
+        displayPanel = new JPanel(new GridLayout(2, 2));
         displayPanel.setBackground(Color.WHITE);
-        displayPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-        add(displayPanel, BorderLayout.CENTER);
-
-        // Inicializa la serie de datos
-        series = new XYSeries("Maximun Fitness");
-
-        // Crea un contenedor de datos
-        XYSeriesCollection dataset = new XYSeriesCollection(series);
-
-        // Crea el gráfico
-        chart = ChartFactory.createXYLineChart(
-                "Fitness Evolution", // Título del gráfico
-                "Generation", // Etiqueta del eje X
-                "Fitness", // Etiqueta del eje Y
-                dataset, // Datos
-                PlotOrientation.VERTICAL,
-                true, // Incluir leyenda
-                true,
-                false
-        );
-        // Obtén el plot del gráfico
-        XYPlot plot = chart.getXYPlot();
-
-        // Ajusta el rango del eje X si es necesario
-        plot.getDomainAxis().setAutoRange(true);
-
-        // Ajusta el rango del eje Y si es necesario
-        plot.getRangeAxis().setAutoRange(true);
-
-        // Establece un margen alrededor de los rangos automáticos para evitar que los puntos más extremos toquen los bordes del gráfico
-        plot.getDomainAxis().setUpperMargin(0.05); // 5% de margen en la parte superior del rango del eje X
-        plot.getDomainAxis().setLowerMargin(0.05); // 5% de margen en la parte inferior del rango del eje X
-
-        plot.getRangeAxis().setUpperMargin(0.05); // 5% de margen en la parte superior del rango del eje Y
-        plot.getRangeAxis().setLowerMargin(0.05); // 5% de margen en la parte inferior del rango del eje Y
-
-
-        // Crea un panel para el gráfico y lo añade al frame
-        ChartPanel chartPanel = new ChartPanel(chart);
-        chartPanel.setPreferredSize(new Dimension(400, 300));
-
-        // Añade el panel del gráfico al panel central dividido en 3
-
-        displayPanel.add(chartPanel); // Añade el panel del gráfico como uno de los 3 paneles
-        // Añadir otros 2 paneles aquí según sea necesario
-
-        add(displayPanel, BorderLayout.CENTER);
-
+        series = new XYSeries("Best Fitness");
+        JFreeChart chart = ChartFactory.createXYLineChart("Fitness Evolution", "Generation", "Fitness",
+                new XYSeriesCollection(series), PlotOrientation.VERTICAL, true, true, false);
+        displayPanel.add(new ChartPanel(chart));
         populationPanel = new PopulationPanel();
         populationPanel.setBackground(Color.WHITE);
         displayPanel.add(populationPanel);
-
-        initializeHistogram(); // Inicializa el histograma
-        displayPanel.add(histogramPanel); // Añade el panel del histograma al panel central dividido en 3
-
-        JPanel visualization = problems[indexProblems].getVisualization();
+        histogramPanel = new ChartPanel(createHistogram(new HistogramDataset()));
+        displayPanel.add(histogramPanel);
+        JPanel visualization = problems[problemComboBox.getSelectedIndex()].getVisualization();
         visualization.setBackground(Color.WHITE);
         displayPanel.add(visualization);
-
-
+        add(displayPanel, BorderLayout.CENTER);
+        revalidate();
+        repaint();
     }
-    public void sidePanel(){
 
-        add(sidePanel, BorderLayout.WEST);
-
-
+    public void sidePanel() {
         sidePanel.add(runOneGenerationButton);
-
         sidePanel.add(runNGenerationsButton);
-
         sidePanel.add(runForTimeButton);
-
         sidePanel.add(restartAlgorithmButton);
-
-
         problemComboBox = new JComboBox<>(new String[]{
-                "Traveling Salesman Problem",
-                "Knapsack Problem",
-                "N-Queens Problem",
-                "Guess Number Problem",
-                "Real Value Optimization Problem",
-                "Circular TSP Problem"
+                "Traveling Salesman Problem", "Knapsack Problem", "N-Queens Problem",
+                "Guess Number Problem", "Real Value Optimization Problem", "Circular TSP Problem"
         });
-
-        sidePanel.add(problemComboBox);
-
         crossoverTypeComboBox = new JComboBox<>(new String[]{"Single Point", "Double Point", "Uniform"});
-        // sidePanel.add(new JLabel("Crossover Type:"));
+        selectionTypeComboBox = new JComboBox<>(new String[]{"Tournament", "Roulette", "Truncation", "Brindle Sampling"});
+        sidePanel.add(problemComboBox);
         sidePanel.add(crossoverTypeComboBox);
-
-        selectionTypeComboBox = new JComboBox<>(new String[]{
-                "Tournament",
-                "Roulette",
-                "Truncation",
-                "Brindle Sampling"
-        });
-        // sidePanel.add(new JLabel("Selection Type:"));
         sidePanel.add(selectionTypeComboBox);
-
-        JPanel constantsPanel = new JPanel(new GridLayout(0, 2, 10, 0));
-        //sidePanel.add(new JLabel("Constants Configuration:"));
-        sidePanel.add(constantsPanel);
-
+        JPanel parameters = new JPanel(new GridLayout(0, 2, 10, 0));
         crossoverRateField = new JTextField("0.5", 5);
-        constantsPanel.add(new JLabel("Crossover Rate:"));
-        constantsPanel.add(crossoverRateField);
-
         mutationRateField = new JTextField("0.15", 5);
-        constantsPanel.add(new JLabel("Mutation Rate:"));
-        constantsPanel.add(mutationRateField);
-
         tournamentSizeField = new JTextField("5", 5);
-        constantsPanel.add(new JLabel("Tournament Size:"));
-        constantsPanel.add(tournamentSizeField);
-
         initialPopulationField = new JTextField("100", 5);
-        constantsPanel.add(new JLabel("Initial Population:"));
-        constantsPanel.add(initialPopulationField);
+        parameters.add(new JLabel("Crossover Rate:"));
+        parameters.add(crossoverRateField);
+        parameters.add(new JLabel("Mutation Rate:"));
+        parameters.add(mutationRateField);
+        parameters.add(new JLabel("Tournament Size:"));
+        parameters.add(tournamentSizeField);
+        parameters.add(new JLabel("Initial Population:"));
+        parameters.add(initialPopulationField);
+        sidePanel.add(parameters);
 
-        // Manejadores de eventos
         runOneGenerationButton.addActionListener(e -> runOneGeneration(1));
-
         runNGenerationsButton.addActionListener(e -> {
             String input = JOptionPane.showInputDialog(this, "Enter number of generations to run");
-            if (input != null && !input.isEmpty()) {
-                try {
-                    int generations = Integer.parseInt(input);
-                    runOneGeneration(generations);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Please enter a valid number", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            if (input == null) return;
+            try {
+                runOneGeneration(Integer.parseInt(input.trim()));
+            } catch (IllegalArgumentException ex) {
+                showError("Enter a positive number of generations");
             }
         });
-
-        restartAlgorithmButton.addActionListener(e -> {
-            generatiosn = 0;
-            ga = null;
-            population = null;
-            statusLabel.setText("Algorithm restarted");
-            series.clear();
-            populationPanel.clear();
-
-            problems[indexProblems].getVisualization().clear();
-
-            plots();
-            initGA();
-            SwingUtilities.invokeLater(this::updateHistogram);
-            runOneGeneration(1);
-
-            generatiosn = 0;
-            ga = null;
-            population = null;
-            statusLabel.setText("Algorithm restarted");
-            series.clear();
-            populationPanel.clear();
-
-            problems[indexProblems].getVisualization().clear();
-
-            plots();
-            initGA();
-            SwingUtilities.invokeLater(this::updateHistogram);
-        });
-
+        restartAlgorithmButton.addActionListener(e -> restartAlgorithm());
+        problemComboBox.addActionListener(e -> resetDisplay());
         runForTimeButton.addActionListener(e -> {
-            String input = JOptionPane.showInputDialog(this, "Enter N ");
-            if (input != null && !input.isEmpty()) {
-                try {
-                    int time = Integer.parseInt(input);
-
-                    problems[indexProblems] = problems[indexProblems].generateRandom(time);
-                    restartAlgorithmButton.doClick();
-
-
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(this, "Please enter a valid number", "Error", JOptionPane.ERROR_MESSAGE);
-                }
+            String input = JOptionPane.showInputDialog(this, "Enter problem size");
+            if (input == null) return;
+            try {
+                int size = Integer.parseInt(input.trim());
+                if (size < 1) throw new IllegalArgumentException("Problem size must be positive");
+                int index = problemComboBox.getSelectedIndex();
+                problems[index] = problems[index].generateRandom(size);
+                restartAlgorithm();
+            } catch (IllegalArgumentException ex) {
+                showError(ex.getMessage());
             }
         });
-
     }
-    private void runOneGeneration(int generationNumber) {
 
-        if (ga == null) {
+    private void resetDisplay() {
+        if (worker != null) return;
+        if (ga != null) ga.problem.getVisualization().clear();
+        ga = null;
+        population = null;
+        generations = 0;
+        problems[problemComboBox.getSelectedIndex()].getVisualization().clear();
+        plots();
+        statusLabel.setText("Status: Ready");
+    }
+
+    private void restartAlgorithm() {
+        if (worker != null) return;
+        resetDisplay();
+        try {
             initGA();
+            displayPopulation();
+            statusLabel.setText("Algorithm restarted");
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
         }
+    }
 
-        SwingWorker<Void, Integer> worker = new SwingWorker<>() {
+    private void runOneGeneration(int count) {
+        if (worker != null) return;
+        if (count < 1) {
+            showError("Number of generations must be positive");
+            return;
+        }
+        try {
+            initGA();
+        } catch (IllegalArgumentException ex) {
+            showError(ex.getMessage());
+            return;
+        }
+        final GeneticAlgorithm algorithm = ga;
+        final Population initial = population;
+        final int firstGeneration = generations;
+        setControlsEnabled(sidePanel, false);
+        statusLabel.setText("Running...");
+        worker = new SwingWorker<>() {
             @Override
-            protected Void doInBackground() throws Exception {
-                for (int i = 0; i < generationNumber; i++) {
-                    population = ga.evolve(population);
-                    int currentGeneration = i + 1;
-                    double fitness = population.getFittestIndividual().getFitness();
-
-                    SwingUtilities.invokeLater(() -> updateHistogram());
-                    SwingUtilities.invokeLater(() -> populationPanel.setPopulation(population));
-
-                    SwingUtilities.invokeLater(() -> problems[indexProblems].getVisualization().setPopulation(population));
-
-
-
-
-                    // Publica los resultados intermedios para procesarlos en el EDT
-                    publish(currentGeneration, (int) fitness);
-
-                    // Simula un retraso si es necesario para ver la actualización en tiempo real
-                    Thread.sleep(100); // Quitar o ajustar este retraso según sea necesario
+            protected Population doInBackground() throws InterruptedException {
+                Population current = initial;
+                for (int i = 1; i <= count; i++) {
+                    current = algorithm.evolve(current);
+                    publish(new GenerationUpdate(firstGeneration + i,
+                            current.getFittestIndividual().getFitness(), current));
+                    Thread.sleep(100);
                 }
-
-
-
-                return null;
-
-
+                return current;
             }
 
-
-
             @Override
-            protected void process(List<Integer> chunks) {
-                // El último valor en chunks es el más reciente
-                int currentGeneration = chunks.get(chunks.size() - 2);
-                double fitness = chunks.get(chunks.size() - 1);
-
-                // Asegúrate de que las actualizaciones a la GUI se hagan en el EDT
-                series.addOrUpdate(currentGeneration, fitness);
-                statusLabel.setText("Generation " + currentGeneration + " completed. Best fitness: " + fitness);
+            protected void process(List<GenerationUpdate> updates) {
+                for (GenerationUpdate update : updates) {
+                    series.addOrUpdate(update.generation(), update.fitness());
+                }
+                GenerationUpdate latest = updates.get(updates.size() - 1);
+                generations = latest.generation();
+                population = latest.population();
+                displayPopulation();
+                statusLabel.setText("Generation " + generations + " completed. Best fitness: " + latest.fitness());
             }
 
             @Override
             protected void done() {
-                // Esta función se llama cuando la tarea de fondo está completa
-                // Puede usarse para hacer cualquier limpieza final o actualizaciones de estado
                 try {
-                    get(); // Llama a get para atrapar cualquier excepción que ocurra durante doInBackground
-                    statusLabel.setText("All generations completed. Best fitness: " + population.getFittestIndividual().getFitness());
-                } catch (InterruptedException | ExecutionException e) {
-
-                    System.out.println("Error in background task: no worries babe");
+                    population = get();
+                    generations = firstGeneration + count;
+                    displayPopulation();
+                    statusLabel.setText("All generations completed. Best fitness: "
+                            + population.getFittestIndividual().getFitness());
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    showError("Execution interrupted");
+                } catch (ExecutionException ex) {
+                    showError("Execution failed: " + ex.getCause().getMessage());
+                } finally {
+                    worker = null;
+                    setControlsEnabled(sidePanel, true);
                 }
             }
         };
-
-        worker.execute(); // Ejecuta el SwingWorker; esto inicia el método doInBackground en un hilo de fondo
+        worker.execute();
     }
-    private void initializeHistogram() {
-        HistogramDataset dataset = new HistogramDataset();
-        histogramChart = ChartFactory.createHistogram(
-                "Fitness Distribution",
-                "Fitness",
-                "Frecuency",
-                dataset,
-                PlotOrientation.VERTICAL,
-                true,
-                true,
-                false);
 
-        histogramPanel = new ChartPanel(histogramChart);
-        histogramPanel.setPreferredSize(new Dimension(400, 300));
+    private void displayPopulation() {
+        populationPanel.setPopulation(population);
+        population.getProblem().getVisualization().setPopulation(population);
+        updateHistogram();
     }
-    private void updateHistogram() {
-        if(population == null) return;
-        double[] fitnessValues = new double[population.size()];
-        for (int i = 0; i < population.size(); i++) {
-            fitnessValues[i] = population.getIndividual(i).getFitness();
+
+    private static void setControlsEnabled(Container container, boolean enabled) {
+        for (Component component : container.getComponents()) {
+            component.setEnabled(enabled);
+            if (component instanceof Container child) setControlsEnabled(child, enabled);
         }
+    }
 
+    private static JFreeChart createHistogram(HistogramDataset dataset) {
+        return ChartFactory.createHistogram("Fitness Distribution", "Fitness", "Frequency",
+                dataset, PlotOrientation.VERTICAL, true, true, false);
+    }
+
+    private void updateHistogram() {
+        if (population == null) return;
+        double[] values = new double[population.size()];
+        double minimum = Double.POSITIVE_INFINITY;
+        double maximum = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i < values.length; i++) {
+            values[i] = population.getIndividual(i).getFitness();
+            minimum = Math.min(minimum, values[i]);
+            maximum = Math.max(maximum, values[i]);
+        }
+        if (minimum == maximum) {
+            double margin = Math.max(0.5, Math.abs(minimum) * 0.01);
+            minimum -= margin;
+            maximum += margin;
+        }
         HistogramDataset dataset = new HistogramDataset();
-        dataset.addSeries("Fitness", fitnessValues, 10); // Ajusta el '10' según el número de bins que desees
-
-        histogramChart = ChartFactory.createHistogram(
-                "Fitness Distribution",
-                "Fitness",
-                "Frecuency",
-                dataset,
-                PlotOrientation.VERTICAL,
-                true,
-                true,
-                false);
-
-        histogramPanel.setChart(histogramChart);
+        dataset.addSeries("Fitness", values, 10, minimum, maximum);
+        histogramPanel.setChart(createHistogram(dataset));
     }
+
     private void initGA() {
-
-        indexProblems = problemComboBox.getSelectedIndex();
-        indexCrossover = crossoverTypeComboBox.getSelectedIndex();
-        indexSelection = selectionTypeComboBox.getSelectedIndex();
-
-        AbstractProblem problem = problems[indexProblems];
-        iReproduction reproduction = reproductionMethods[indexCrossover];
-        iSelection selection = selectionMethods[indexSelection];
-        Constants.CROSSOVER_RATE = Double.parseDouble(crossoverRateField.getText());
-        Constants.MUTATION_RATE = Double.parseDouble(mutationRateField.getText());
-        Constants.TOURNAMENT_SELECTION_SIZE = Integer.parseInt(tournamentSizeField.getText());
-        int initialPopulation = Integer.parseInt(initialPopulationField.getText());
-        ga = new GeneticAlgorithm(problem, selection, reproduction);
-        population = new Population(problem, initialPopulation);
+        AbstractProblem problem = problems[problemComboBox.getSelectedIndex()];
+        double crossoverRate = Double.parseDouble(crossoverRateField.getText().trim());
+        double mutationRate = Double.parseDouble(mutationRateField.getText().trim());
+        int tournamentSize = Integer.parseInt(tournamentSizeField.getText().trim());
+        int populationSize = Integer.parseInt(initialPopulationField.getText().trim());
+        if (populationSize < 1 || tournamentSize < 1) {
+            throw new IllegalArgumentException("Population and tournament sizes must be positive");
+        }
+        iSelection selection = switch (selectionTypeComboBox.getSelectedIndex()) {
+            case 0 -> new TournamentSelection(tournamentSize);
+            case 1 -> new RouletteSelection();
+            case 2 -> new TruncationSelection(0.5);
+            default -> new BrindleSelection();
+        };
+        GeneticAlgorithm algorithm = new GeneticAlgorithm(problem, selection,
+                reproductionMethods[crossoverTypeComboBox.getSelectedIndex()], crossoverRate, mutationRate);
+        if (population == null || population.getProblem() != problem || population.size() != populationSize) {
+            population = new Population(problem, populationSize);
+            generations = 0;
+            series.clear();
+        }
+        ga = algorithm;
     }
+
+    private void showError(String message) {
+        statusLabel.setText("Error: " + message);
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new GeneticAlgorithmGUI().setVisible(true));
     }

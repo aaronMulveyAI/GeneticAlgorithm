@@ -23,8 +23,8 @@ public class PopulationPanel extends JPanel {
             return;
         }
 
-        int gridSize = (int) Math.sqrt(population.size());
-        int boxSize = (Math.min(getWidth(), getHeight()) / gridSize) - 7;
+        int gridSize = (int) Math.ceil(Math.sqrt(population.size()));
+        int boxSize = Math.max(1, Math.min(Math.max(1, getWidth() - 110), Math.max(1, getHeight() - 90)) / gridSize);
         // Calcula el ancho total del cuadrado de la población
         int totalWidth = boxSize * gridSize;
         // Calcula el inicio para centrar el cuadrado en el panel
@@ -36,7 +36,7 @@ public class PopulationPanel extends JPanel {
 
         double sum = 0;
         for (int i = 0; i < population.size(); i++) {
-            sum += (int) population.getIndividual(i).getFitness();
+            sum += population.getIndividual(i).getFitness();
 
             int x = startX + (i % gridSize) * boxSize;
             int y = startY + (i / gridSize) * boxSize;
@@ -105,7 +105,9 @@ public class PopulationPanel extends JPanel {
 
 
     private static Color getColor(double fitness, double minFitness, double maxFitness) {
-        float scale = (float) ((fitness - minFitness) / (maxFitness - minFitness));
+        float scale = minFitness == maxFitness ? 0.5f
+                : (float) ((fitness - minFitness) / (maxFitness - minFitness));
+        scale = Math.max(0, Math.min(1, scale));
 
         // Interpola entre rojo (1,0,0) y verde (0,1,0) a través de amarillo (1,1,0)
         Color color;
@@ -124,4 +126,3 @@ public class PopulationPanel extends JPanel {
         repaint(); // Vuelve a dibujar el panel para limpiarlo
     }
 }
-

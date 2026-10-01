@@ -26,17 +26,20 @@ public class KnapsackVisualization extends AbstractVisualization {
         if (population != null) {
             // Asumiendo que existe un método en Population para obtener el peso total de la mochila más apta
             Individual fittest = this.population.getFittestIndividual();
+            KnapsackProblem problem = (KnapsackProblem) population.getProblem();
+            capacity = problem.getMaxWeight();
 
             totalWeight = 0;
-            for (int i = 0; i < fittest.genes.length; i++) {
-                if (fittest.genes[i] == 1) {
-                    totalWeight += KnapsackProblem.weights[i];
+            for (int i = 0; i < problem.getModelSize(); i++) {
+                if (fittest.getGene(i) == 1) {
+                    totalWeight += problem.getWeight(i);
                 }
             }
 
-            this.filledPercentage = totalWeight / capacity;
+            this.filledPercentage = capacity == 0 ? 0 : Math.min(1, totalWeight / capacity);
         } else {
             this.filledPercentage = 0;
+            totalWeight = 0;
         }
         repaint(); // Solicita que el componente se repinte
     }

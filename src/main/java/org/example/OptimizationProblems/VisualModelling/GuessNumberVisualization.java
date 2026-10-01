@@ -26,7 +26,7 @@ public class GuessNumberVisualization extends AbstractVisualization {
         if (population == null) return;
 
         int[] guess = population.getFittestIndividual().getGenes();
-        int[] target = GuessNumberProblem.targetSequence;
+        int[] target = ((GuessNumberProblem) population.getProblem()).getTargetSequence();
 
         g.setFont(new Font("Arial", Font.BOLD, FONT_SIZE));
         FontMetrics metrics = g.getFontMetrics();
@@ -34,8 +34,8 @@ public class GuessNumberVisualization extends AbstractVisualization {
         int charHeight = metrics.getHeight();
 
         // Calcula el número máximo de números por línea
-        int maxNumbersPerLine = (getWidth() - PADDING * 2) / charWidth;
-        int linesNeeded = (int) Math.ceil((double)GuessNumberProblem.sequenceLength / maxNumbersPerLine);
+        int maxNumbersPerLine = Math.max(1, (getWidth() - PADDING * 2) / charWidth);
+        int linesNeeded = (int) Math.ceil((double) target.length / maxNumbersPerLine);
 
         // Calcula la posición inicial y para el centrado vertical
         int totalHeight = linesNeeded * 2 * charHeight; // Total de líneas (objetivo + adivinanza) * altura
@@ -44,7 +44,7 @@ public class GuessNumberVisualization extends AbstractVisualization {
         // Dibuja la secuencia en líneas, ajustando según sea necesario
         for (int line = 0; line < linesNeeded; line++) {
             int startIdx = line * maxNumbersPerLine;
-            int endIdx = Math.min(startIdx + maxNumbersPerLine, GuessNumberProblem.sequenceLength);
+            int endIdx = Math.min(startIdx + maxNumbersPerLine, target.length);
             int lineWidth = (endIdx - startIdx) * charWidth;
             int x = (getWidth() - lineWidth) / 2;
 

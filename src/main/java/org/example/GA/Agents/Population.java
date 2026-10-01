@@ -1,93 +1,65 @@
 package org.example.GA.Agents;
 
-
 import org.example.OptimizationProblems.Modelling.AbstractProblem;
+import org.example.GA.OPTIMIZATION_TYPE;
+import java.util.Objects;
 
 public class Population {
-    private Individual[] individuals;
+    private final Individual[] individuals;
+    private final AbstractProblem problem;
 
-    public Population(AbstractProblem problem, int populationSize){
-        individuals = new Individual[populationSize];
-        initializePopulation(problem);
+    public Population(AbstractProblem problem, int populationSize) {
+        this(problem, populationSize, true);
     }
 
-    /**
-     * Initialize population
-     */
-    private void initializePopulation(AbstractProblem problem){
-        for (int i = 0; i < individuals.length; i++) {
-            individuals[i] = new Individual(problem);
+    public Population(AbstractProblem problem, int populationSize, boolean initialize) {
+        if (populationSize < 1) {
+            throw new IllegalArgumentException("Population size must be positive");
+        }
+        this.problem = Objects.requireNonNull(problem);
+        individuals = new Individual[populationSize];
+        if (initialize) {
+            for (int i = 0; i < populationSize; i++) {
+                individuals[i] = new Individual(problem);
+            }
         }
     }
 
-    /**
-     * Save individual
-     * @param index index of individual
-     * @param individual individual to save
-     */
-    public void saveIndividual(int index, Individual individual){
+    public void saveIndividual(int index, Individual individual) {
+        if (Objects.requireNonNull(individual).getProblem() != problem) {
+            throw new IllegalArgumentException("Individual belongs to another problem");
+        }
         individuals[index] = individual;
     }
 
+    public int size() { return individuals.length; }
+    public AbstractProblem getProblem() { return problem; }
+    public OPTIMIZATION_TYPE getOptimizationType() { return problem.getOptimizationType(); }
 
-    /**
-     * Get size of population
-     * @return size of population
-     */
-    public int size(){return individuals.length;}
+    public boolean isBetter(double candidate, double reference) {
+        return getOptimizationType() == OPTIMIZATION_TYPE.MAXIMIZE ? candidate > reference : candidate < reference;
+    }
 
-    /**
-     * Get the fittest individual
-     * @return fittest individual
-     */
-    public Individual getFittestIndividual(){
-        Individual fittest = individuals[0];
+    public Individual getFittestIndividual() { return getExtreme(true); }
+    public Individual getLeastFitIndividual() { return getExtreme(false); }
 
-        for (int i = 0; i < individuals.length; i++){
-
-            switch (individuals[0].getProblem().getOptimizationMethod()){
-
-                case COMBINATORIAL:
-                    if (fittest.calculateFitness() <= getIndividual(i).calculateFitness()){
-                        fittest = getIndividual(i);
-                    }
-                    break;
-
-                case PERMUTATION:
-                    if (fittest.calculateFitness() > getIndividual(i).calculateFitness()){
-                        fittest = getIndividual(i);
-                    }
-                    break;
+    private Individual getExtreme(boolean best) {
+        Individual result = getIndividual(0);
+        double fitness = result.getFitness();
+        for (int i = 1; i < size(); i++) {
+            Individual candidate = getIndividual(i);
+            double candidateFitness = candidate.getFitness();
+            if (best ? isBetter(candidateFitness, fitness) : isBetter(fitness, candidateFitness)) {
+                result = candidate;
+                fitness = candidateFitness;
             }
         }
-        return fittest;
+        return result;
     }
 
-    public Individual getLeastFitIndividual(){
-        Individual fittest = individuals[0];
-
-        for (int i = 0; i < individuals.length; i++){
-
-            switch (individuals[0].getProblem().getOptimizationMethod()){
-
-                case COMBINATORIAL:
-                    if (fittest.calculateFitness() > getIndividual(i).calculateFitness()){
-                        fittest = getIndividual(i);
-                    }
-                    break;
-                case PERMUTATION:
-                    if (fittest.calculateFitness() < getIndividual(i).calculateFitness()){
-                        fittest = getIndividual(i);
-                    }
-                    break;
-            }
-        }
-        return fittest;
-    }
-    public Individual getIndividual(int index){
-        return individuals[index];
+    public Individual getIndividual(int index) {
+        return Objects.requireNonNull(individuals[index], "Population is not fully initialized");
     }
 
-    public Individual[] getIndividuals() {return individuals;}
-
+    public Individual[] getIndividuals() { return individuals.clone(); }
 }

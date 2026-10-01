@@ -2,121 +2,87 @@ package org.example.GA;
 
 import org.example.GA.Agents.Abilities.*;
 import org.example.GA.Agents.*;
-import org.example.OptimizationProblems.Modelling.*;
-
+import org.example.OptimizationProblems.Modelling.AbstractProblem;
+import java.util.Objects;
 import static org.example.GA.Constants.*;
-import static org.example.OptimizationProblems.OptimizationMethod.COMBINATORIAL;
-import static org.example.OptimizationProblems.OptimizationMethod.PERMUTATION;
 
 public class GeneticAlgorithm {
+    public final OPTIMIZATION_TYPE optimizationType;
+    public final AbstractProblem problem;
+    public final iSelection selectionMethod;
+    public final iReproduction reproductionMethod;
+    private final double crossoverRate;
+    private final double mutationRate;
 
-    public static OPTIMIZATION_TYPE optimizationType = OPTIMIZATION_TYPE.MAXIMIZE;
-    public AbstractProblem problem;
-    public iSelection selectionMethod;
-    public iReproduction reproductionMethod;
-
-    public GeneticAlgorithm(AbstractProblem problem, iSelection selectionMethod, iReproduction reproductionMethod){
-        this.problem = problem;
-        this.selectionMethod = selectionMethod;
-        this.reproductionMethod = reproductionMethod;
-        optimizationType = optimizationType(problem);
+    public GeneticAlgorithm(AbstractProblem problem, iSelection selectionMethod, iReproduction reproductionMethod) {
+        this(problem, selectionMethod, reproductionMethod, CROSSOVER_RATE, MUTATION_RATE);
     }
 
-    public OPTIMIZATION_TYPE optimizationType(AbstractProblem problem){
-        if (problem instanceof TravelingSalesmanProblem) return OPTIMIZATION_TYPE.MINIMIZE;
-        if (problem instanceof CircularTSProblem) return OPTIMIZATION_TYPE.MINIMIZE;
-        if (problem instanceof NQueensProblem) return OPTIMIZATION_TYPE.MAXIMIZE;
-        if (problem instanceof KnapsackProblem) return OPTIMIZATION_TYPE.MAXIMIZE;
-        if (problem instanceof GuessNumberProblem) return OPTIMIZATION_TYPE.MAXIMIZE;
-        if (problem instanceof RealValueOptimizationProblem) return OPTIMIZATION_TYPE.MAXIMIZE;
-        return OPTIMIZATION_TYPE.MAXIMIZE;
+    public GeneticAlgorithm(AbstractProblem problem, iSelection selectionMethod, iReproduction reproductionMethod,
+                            double crossoverRate, double mutationRate) {
+        validateRate(crossoverRate);
+        validateRate(mutationRate);
+        this.problem = Objects.requireNonNull(problem);
+        this.selectionMethod = Objects.requireNonNull(selectionMethod);
+        this.reproductionMethod = Objects.requireNonNull(reproductionMethod);
+        this.optimizationType = problem.getOptimizationType();
+        this.crossoverRate = crossoverRate;
+        this.mutationRate = mutationRate;
     }
 
-    /**
-     * Evolve population to next generation using crossover and mutation operations
-     * @param population population to evolve
-     * @return new population after evolution
-     */
-    public Population evolve(Population population){
+    private static void validateRate(double rate) {
+        if (!Double.isFinite(rate) || rate < 0 || rate > 1) {
+            throw new IllegalArgumentException("Rates must be between 0 and 1");
+        }
+    }
 
-        Population newPopulation = new Population(problem, population.size());
+    public OPTIMIZATION_TYPE optimizationType(AbstractProblem problem) { return problem.getOptimizationType(); }
 
-        // crossover
+    public Population evolve(Population population) {
+        if (population.getProblem() != problem) {
+            throw new IllegalArgumentException("Population belongs to another problem");
+        }
+        Population next = new Population(problem, population.size(), false);
         for (int i = 0; i < population.size(); i++) {
-            Individual father = selection(population);
-            Individual mother = selection(population);
+            Individual father = selectionMethod.selectIndividual(population);
+            Individual mother = selectionMethod.selectIndividual(population);
             Individual child = crossover(father, mother);
-            newPopulation.saveIndividual(i, child);
+            mutate(child);
+            next.saveIndividual(i, child);
         }
-
-        // mutate
-        for (int i = 0; i < newPopulation.size(); i++) {
-            mutate(newPopulation.getIndividual(i));
-        }
-
-        return newPopulation;
+        return next;
     }
 
-    /**
-     * Random Selection of individuals with tournament selection
-     * @param population population to select from
-     * @return individual selected
-     */
-    private Individual selection(Population population){
-       return selectionMethod.selectIndividual(population);
-    }
-
-    /**
-     * Crossover individuals
-     * @param father father individual
-     * @param mother mother individual
-     * @return child individual
-     */
     public Individual crossover(Individual father, Individual mother) {
-        return reproductionMethod.crossover(father, mother);
-    }
-
-    /**
-     * Mutate individual
-     * @param individual individual to mutate
-     */
-    private void mutate(Individual individual){
-        switch (individual.getProblem().getOptimizationMethod()){
-            case COMBINATORIAL -> mutateCombinatorial(individual);
-            case PERMUTATION -> mutatePermutation(individual);
+        if (father.getProblem() != problem || mother.getProblem() != problem) {
+            throw new IllegalArgumentException("Parents belong to another problem");
         }
+        return RANDOM.nextDouble() < crossoverRate ? reproductionMethod.crossover(father, mother) : father.copy();
     }
 
-    /**
-     * Mutate combinatorial individual
-     * @param individual individual to mutate
-     */
-    private void mutateCombinatorial(Individual individual){
-        for (int i = 0; i < problem.getModelSize(); i++) {
-            if (RANDOM.nextDouble() <= MUTATION_RATE) {
-                int gene = RANDOM.nextInt(individual.getProblem().getModelSize());
-                individual.setGene(i, gene);
+    private void mutate(Individual individual) {
+        int[] genes = individual.getGenes();
+        switch (problem.getOptimizationMethod()) {
+            case COMBINATORIAL -> {
+                int domain = problem.getGeneValueCount();
+                for (int i = 0; i < genes.length; i++) {
+                    if (domain > 1 && RANDOM.nextDouble() < mutationRate) {
+                        int replacement = RANDOM.nextInt(domain - 1);
+                        genes[i] = replacement >= genes[i] ? replacement + 1 : replacement;
+                    }
+                }
+            }
+            case PERMUTATION -> {
+                if (genes.length > 1 && RANDOM.nextDouble() < mutationRate) {
+                    int first = RANDOM.nextInt(genes.length);
+                    int second = RANDOM.nextInt(genes.length - 1);
+                    if (second >= first) second++;
+                    int temp = genes[first];
+                    genes[first] = genes[second];
+                    genes[second] = temp;
+                }
             }
         }
-    }
-
-    /**
-     * Mutate permutation individual
-     * @param individual individual to mutate
-     */
-    private void mutatePermutation(Individual individual){
-        if (RANDOM.nextDouble() <= MUTATION_RATE) {
-            int index1 = RANDOM.nextInt(individual.getGenes().length);
-            int index2 = RANDOM.nextInt(individual.getGenes().length);
-
-
-            while (index1 == index2) {
-                index2 = RANDOM.nextInt(individual.getGenes().length);
-            }
-
-            int temp = individual.getGenes()[index1];
-            individual.setGene(index1, individual.getGenes()[index2]);
-            individual.setGene(index2, temp);
-        }
+        individual.setGenes(genes);
     }
 }

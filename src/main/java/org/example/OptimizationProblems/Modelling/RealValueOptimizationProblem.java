@@ -5,26 +5,29 @@ import org.example.OptimizationProblems.VisualModelling.RealValueOptimizationVis
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import static org.example.GA.Constants.RANDOM;
 import java.util.function.Function;
 
 public class RealValueOptimizationProblem extends AbstractProblem {
     public static final int CHROMOSOME_LENGTH = 32;
     public static final double MIN_RANGE = -100;
     public static final double MAX_RANGE = 100;
-    public static Function<Double, Double> objectiveFunction;
+    private final Function<Double, Double> objectiveFunction;
 
     private static final List<Function<Double, Double>> functions = new ArrayList<>();
-    private static final Random RANDOM = new Random();
 
     static {
-        functions.add(x -> (Math.sin(x) * ((x - 2) * (x - 2) + 3)) / x + 0.5);
+        functions.add(x -> (x == 0 ? 1 : Math.sin(x) / x) * ((x - 2) * (x - 2) + 3) + 0.5);
     }
 
     public RealValueOptimizationProblem() {
         super(new RealValueOptimizationVisualization(),"Real Value Optimization Problem", OptimizationMethod.COMBINATORIAL, CHROMOSOME_LENGTH);
         objectiveFunction = selectRandomFunction();
     }
+
+    @Override
+    public int getGeneValueCount() { return 2; }
+    public double evaluate(double x) { return objectiveFunction.apply(x); }
 
     @Override
     public int[] sampleSolution() {
@@ -47,12 +50,11 @@ public class RealValueOptimizationProblem extends AbstractProblem {
     }
 
 
-    private double binaryToReal(int[] binary) {
+    public double binaryToReal(int[] binary) {
+        validateSolution(binary);
         long value = 0;
         for (int i = 0; i < CHROMOSOME_LENGTH; i++) {
-            if (binary[i] == 1) {
-                value += (long) Math.pow(2, CHROMOSOME_LENGTH - i - 1);
-            }
+            value = (value << 1) | binary[i];
         }
         return MIN_RANGE + ((MAX_RANGE - MIN_RANGE) / (Math.pow(2, CHROMOSOME_LENGTH) - 1)) * value;
     }

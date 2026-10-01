@@ -2,63 +2,49 @@ package org.example.GA.Agents.Abilities.Crossover;
 
 import org.example.GA.Agents.Abilities.iReproduction;
 import org.example.GA.Agents.Individual;
-
 import java.util.Arrays;
-
-import static org.example.GA.Constants.CROSSOVER_RATE;
 import static org.example.GA.Constants.RANDOM;
 
 public class UniformCrossover implements iReproduction {
-
     @Override
     public Individual crossover(Individual father, Individual mother) {
-       return switch (father.getProblem().getOptimizationMethod()) {
-           case COMBINATORIAL -> crossoverCombination(father, mother);
-           case PERMUTATION -> crossoverPermutation(father, mother);
-       };
+        return switch (father.getProblem().getOptimizationMethod()) {
+            case COMBINATORIAL -> crossoverCombination(father, mother);
+            case PERMUTATION -> crossoverPermutation(father, mother);
+        };
     }
 
     @Override
     public Individual crossoverCombination(Individual father, Individual mother) {
-        Individual child = new Individual(father.getProblem());
-
-        for (int i = 0; i < child.getGenes().length; i++) {
-            int gene = (RANDOM.nextDouble() <= CROSSOVER_RATE)? father.getGenes()[i] : mother.getGenes()[i];
-            child.setGene(i, gene);
+        validateParents(father, mother);
+        int[] genes = father.getGenes();
+        for (int i = 0; i < genes.length; i++) {
+            if (RANDOM.nextBoolean()) genes[i] = mother.getGene(i);
         }
-        return child;
+        return new Individual(father.getProblem(), genes);
     }
 
     @Override
     public Individual crossoverPermutation(Individual father, Individual mother) {
-        Individual child = new Individual(father.getProblem());
-        int[] childGenes = new int[father.getGenes().length];
-        boolean[] taken = new boolean[childGenes.length];
-        Arrays.fill(childGenes, -1);
-        Arrays.fill(taken, false);
-
-
-        for (int i = 0; i < childGenes.length; i++) {
-            if (RANDOM.nextDouble() < 0.5 && !taken[father.getGenes()[i]]) {
-                childGenes[i] = father.getGenes()[i];
-                taken[father.getGenes()[i]] = true;
+        validateParents(father, mother);
+        int[] genes = new int[father.getProblem().getModelSize()];
+        boolean[] taken = new boolean[genes.length];
+        Arrays.fill(genes, -1);
+        for (int i = 0; i < genes.length; i++) {
+            if (RANDOM.nextBoolean()) {
+                genes[i] = father.getGene(i);
+                taken[genes[i]] = true;
             }
         }
-
-
-        for (int i = 0; i < mother.getGenes().length; i++) {
-            if (!taken[mother.getGenes()[i]]) {
-                for (int j = 0; j < childGenes.length; j++) {
-                    if (childGenes[j] == -1) {
-                        childGenes[j] = mother.getGenes()[i];
-                        taken[mother.getGenes()[i]] = true;
-                        break;
-                    }
-                }
+        int position = 0;
+        for (int i = 0; i < genes.length; i++) {
+            int gene = mother.getGene(i);
+            if (!taken[gene]) {
+                while (genes[position] != -1) position++;
+                genes[position] = gene;
+                taken[gene] = true;
             }
         }
-
-        child.setGenes(childGenes);
-        return child;
+        return new Individual(father.getProblem(), genes);
     }
 }
