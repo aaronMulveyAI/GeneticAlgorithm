@@ -1,4 +1,5 @@
-export type ProblemId = 'queens' | 'tsp' | 'circular' | 'knapsack' | 'sequence' | 'function';
+export type ProblemId = 'queens' | 'tsp' | 'circular' | 'knapsack' | 'sequence' | 'function' | 'rockets';
+export type Scenario = 'wall' | 'slalom' | 'asteroids';
 export type Selection = 'tournament' | 'roulette' | 'truncation' | 'residual';
 export type Crossover = 'single' | 'double' | 'uniform';
 export type Status = 'ready' | 'running' | 'paused' | 'completed';
@@ -14,9 +15,12 @@ export interface Config {
   tournamentSize: number;
   seed: number;
   elitism: boolean;
+  scenario: Scenario;
 }
 
 export interface Point { x: number; y: number }
+export interface Rect { x: number; y: number; width: number; height: number }
+export interface RocketWorld { start: Point; goal: Point; goalRadius: number; obstacles: Rect[] }
 export interface Problem {
   id: ProblemId;
   size: number;
@@ -28,6 +32,7 @@ export interface Problem {
   weights: number[];
   values: number[];
   capacity: number;
+  world?: RocketWorld;
 }
 
 export interface Individual { genes: number[]; fitness: number }

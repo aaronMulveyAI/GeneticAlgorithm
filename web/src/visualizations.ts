@@ -1,4 +1,6 @@
 import { binaryToReal, objective } from './engine';
+import { DIRECTIONS, flyRocket, WORLD_SIZE } from './rockets';
+import type { Flight } from './rockets';
 import type { Snapshot } from './types';
 import type { Painter } from './Canvas';
 
@@ -14,7 +16,140 @@ function text(context: CanvasRenderingContext2D, value: string, x: number, y: nu
   context.fillText(value, x, y);
 }
 
+const flights = new WeakMap<Snapshot, { population: Flight[]; best: Flight }>();
+
+export function rocketFlights(snapshot: Snapshot) {
+  let cached = flights.get(snapshot);
+  if (!cached) {
+    const world = snapshot.problem.world!;
+    cached = {
+      population: snapshot.population.map(individual => flyRocket(world, individual.genes)),
+      best: flyRocket(world, snapshot.best.genes),
+    };
+    flights.set(snapshot, cached);
+  }
+  return cached;
+}
+
+const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const flightStarts = new WeakMap<Snapshot, number>();
+const HOLD_MS = 900;
+
+// Mientras la simulación avanza, el vuelo se repite con un reloj continuo y cada vuelta muestra la
+// generación más reciente. En pausa, cada generación nueva se ve despegar desde el principio.
+function flightFrame(snapshot: Snapshot, time: number): number {
+  const steps = snapshot.problem.size;
+  if (reducedMotion()) return steps;
+  const stepMs = Math.min(24, 4200 / steps);
+  if (snapshot.status !== 'running' && !flightStarts.has(snapshot)) flightStarts.set(snapshot, time);
+  const elapsed = Math.max(0, time - (flightStarts.get(snapshot) ?? 0));
+  return Math.min(steps, Math.floor(elapsed % (steps * stepMs + HOLD_MS) / stepMs));
+}
+
+function rocketPainter(snapshot: Snapshot): Painter {
+  return (context, width, height, time) => {
+    const world = snapshot.problem.world!;
+    const { population, best } = rocketFlights(snapshot);
+    const frame = flightFrame(snapshot, time);
+    const scale = Math.min(width - 24, height - 24) / WORLD_SIZE;
+    const left = (width - scale * WORLD_SIZE) / 2;
+    const top = (height - scale * WORLD_SIZE) / 2;
+    const px = (x: number) => left + x * scale;
+    const py = (y: number) => top + y * scale;
+    const at = (flight: Flight) => Math.min(frame, flight.path.length - 1);
+
+    context.fillStyle = '#f7f9fb';
+    context.fillRect(left, top, WORLD_SIZE * scale, WORLD_SIZE * scale);
+    context.strokeStyle = '#eef1f4';
+    context.lineWidth = 1;
+    for (let i = 10; i < WORLD_SIZE; i += 10) {
+      context.beginPath(); context.moveTo(px(i), top); context.lineTo(px(i), py(WORLD_SIZE)); context.stroke();
+      context.beginPath(); context.moveTo(left, py(i)); context.lineTo(px(WORLD_SIZE), py(i)); context.stroke();
+    }
+    context.strokeStyle = '#dfe5ec';
+    context.strokeRect(left + 0.5, top + 0.5, WORLD_SIZE * scale - 1, WORLD_SIZE * scale - 1);
+
+    context.fillStyle = '#3d4652';
+    for (const rect of world.obstacles) {
+      context.beginPath();
+      if (context.roundRect) context.roundRect(px(rect.x), py(rect.y), rect.width * scale, rect.height * scale, 3);
+      else context.rect(px(rect.x), py(rect.y), rect.width * scale, rect.height * scale);
+      context.fill();
+    }
+
+    const goal = { x: px(world.goal.x), y: py(world.goal.y) };
+    for (const [radius, color] of [[1, RED], [0.66, '#ffffff'], [0.33, RED]] as const) {
+      context.fillStyle = color;
+      context.beginPath(); context.arc(goal.x, goal.y, world.goalRadius * scale * radius, 0, Math.PI * 2); context.fill();
+    }
+    context.fillStyle = '#c3ccd6';
+    context.fillRect(px(world.start.x - 5), py(world.start.y + 2), 10 * scale, 1.2 * scale);
+
+    const trail = (flight: Flight, color: string, lineWidth: number) => {
+      const end = at(flight);
+      context.strokeStyle = color;
+      context.lineWidth = lineWidth;
+      context.beginPath();
+      for (let i = 0; i <= end; i++) {
+        const point = flight.path[i];
+        if (i === 0) context.moveTo(px(point.x), py(point.y)); else context.lineTo(px(point.x), py(point.y));
+      }
+      context.stroke();
+    };
+    context.lineJoin = 'round';
+    population.slice(0, 150).forEach(flight => trail(flight, '#3973d61f', 1));
+    trail(best, '#168153b0', 2.2);
+
+    const rocket = (flight: Flight, genes: number[], color: string, size: number) => {
+      const index = at(flight);
+      const point = flight.path[index];
+      const previous = flight.path[Math.max(0, index - 1)];
+      const x = px(point.x), y = py(point.y);
+      const finished = index === flight.path.length - 1 && flight.outcome !== 'flying';
+      if (finished && flight.outcome === 'crashed') {
+        context.strokeStyle = '#d35a62a0';
+        context.lineWidth = 1.5;
+        context.beginPath();
+        context.moveTo(x - 3, y - 3); context.lineTo(x + 3, y + 3);
+        context.moveTo(x + 3, y - 3); context.lineTo(x - 3, y + 3);
+        context.stroke();
+        return;
+      }
+      const heading = index === 0 ? -Math.PI / 2 : Math.atan2(point.y - previous.y, point.x - previous.x);
+      context.save();
+      context.translate(x, y);
+      if (!finished && index > 0 && index <= genes.length) {
+        const thrust = genes[index - 1] * 2 * Math.PI / DIRECTIONS - Math.PI / 2;
+        const flicker = 0.75 + 0.25 * Math.sin(index * 2.7 + size);
+        context.fillStyle = '#f0a03ccc';
+        context.beginPath();
+        context.moveTo(-Math.cos(thrust) * size * 1.25 * flicker, -Math.sin(thrust) * size * 1.25 * flicker);
+        context.lineTo(Math.cos(thrust + Math.PI / 2) * size * 0.3, Math.sin(thrust + Math.PI / 2) * size * 0.3);
+        context.lineTo(Math.cos(thrust - Math.PI / 2) * size * 0.3, Math.sin(thrust - Math.PI / 2) * size * 0.3);
+        context.fill();
+      }
+      context.rotate(heading);
+      context.fillStyle = finished ? GREEN : color;
+      context.beginPath();
+      context.moveTo(size, 0); context.lineTo(-size * 0.7, size * 0.55); context.lineTo(-size * 0.4, 0); context.lineTo(-size * 0.7, -size * 0.55);
+      context.closePath(); context.fill();
+      context.restore();
+    };
+    population.forEach((flight, i) => rocket(flight, snapshot.population[i].genes, '#3973d6c0', 5));
+    rocket(best, snapshot.best.genes, GREEN, 7);
+
+    const landed = population.filter(flight => flight.outcome === 'landed' && at(flight) === flight.path.length - 1).length;
+    const crashed = population.filter(flight => flight.outcome === 'crashed' && at(flight) === flight.path.length - 1).length;
+    text(context, `Paso ${frame} / ${snapshot.problem.size}`, left + 8, top + 16, 10, '#6a7482');
+    context.textAlign = 'right';
+    text(context, `${landed} en la diana`, px(WORLD_SIZE) - 8, top + 16, 10, GREEN);
+    text(context, `${crashed} estrellados`, px(WORLD_SIZE) - 8, top + 30, 10, '#b83e4c');
+    context.textAlign = 'left';
+  };
+}
+
 export function solutionPainter(snapshot: Snapshot): Painter {
+  if (snapshot.problem.id === 'rockets') return rocketPainter(snapshot);
   return (context, width, height) => {
     const { problem, best } = snapshot;
     const genes = best.genes;

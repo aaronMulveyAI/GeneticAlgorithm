@@ -4,16 +4,18 @@ import {
   LoaderCircle, Pause, Play, RotateCcw, Shuffle, SkipForward, SlidersHorizontal, Target, Users, X,
 } from 'lucide-react';
 import { Canvas } from './Canvas';
-import { DEFAULT_CONFIG, PROBLEMS, readConfig, shareUrl } from './config';
+import { DEFAULT_CONFIG, PROBLEMS, readConfig, SCENARIOS, shareUrl } from './config';
 import { binaryToReal } from './engine';
+import { DIRECTION_ARROWS } from './rockets';
 import { useSimulation } from './useSimulation';
-import { evolutionPainter, histogramPainter, populationPainter, solutionPainter } from './visualizations';
-import type { Config, Crossover, ProblemId, Selection, Snapshot } from './types';
+import { evolutionPainter, histogramPainter, populationPainter, rocketFlights, solutionPainter } from './visualizations';
+import type { Config, Crossover, ProblemId, Scenario, Selection, Snapshot } from './types';
 
 const formatters = Array.from({ length: 5 }, (_, digits) => new Intl.NumberFormat('es-ES', {
   maximumFractionDigits: digits, minimumFractionDigits: digits,
 }));
 const format = (value: number, digits = 2) => formatters[digits].format(value);
+const fitnessDigits = (problem: Snapshot['problem']) => problem.permutation || problem.id === 'function' ? 2 : problem.id === 'rockets' ? 1 : 0;
 
 function NumberField({ label, value, min, max, disabled, change }: {
   label: string; value: number; min: number; max: number; disabled: boolean; change: (value: number) => void;
@@ -40,6 +42,10 @@ function sceneDetail(snapshot: Snapshot): string {
   if (problem.permutation) return `Ruta cerrada · ${problem.size} ciudades`;
   if (problem.id === 'sequence') return `${best.fitness} de ${problem.size} dígitos correctos`;
   if (problem.id === 'function') return `x = ${format(binaryToReal(best.genes), 4)}`;
+  if (problem.id === 'rockets') {
+    const landed = rocketFlights(snapshot).population.filter(flight => flight.outcome === 'landed').length;
+    return `${landed} de ${snapshot.population.length} cohetes llegan a la diana`;
+  }
   const weight = best.genes.reduce((sum, gene, i) => sum + gene * problem.weights[i], 0);
   return `Peso ${weight} / ${problem.capacity} · ${best.genes.filter(Boolean).length} objetos`;
 }
@@ -61,7 +67,7 @@ export default function App() {
   function chooseProblem(id: ProblemId) {
     setConfig(previous => ({
       ...previous, problem: id, size: PROBLEMS[id].defaultSize,
-      mutationRate: id === 'sequence' ? 0.035 : id === 'function' ? 0.01 : 0.025,
+      mutationRate: id === 'sequence' ? 0.035 : id === 'function' || id === 'rockets' ? 0.01 : 0.025,
     }));
     setView('solution');
   }
@@ -141,6 +147,11 @@ export default function App() {
             <NumberField key={`population-${config.populationSize}`} label="Población" value={config.populationSize}
               min={2} max={500} disabled={running} change={value => update('populationSize', value)} />
           </div>
+          {config.problem === 'rockets' ? <label className="field"><span>Escenario</span>
+            <select value={config.scenario} onChange={event => update('scenario', event.target.value as Scenario)}>
+              {Object.entries(SCENARIOS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </label> : null}
           <div className="sidebar-divider" />
           <label className="field"><span>Selección</span>
             <select value={config.selection} onChange={event => update('selection', event.target.value as Selection)}>
@@ -221,7 +232,7 @@ export default function App() {
         {snapshot ? <>
           <section className="metrics" aria-label="Resultados">
             <div><span><Activity size={13} />Generación</span><strong data-testid="generation">{snapshot.generation.toLocaleString('es-ES')}</strong><small>de 5.000</small></div>
-            <div><span><Target size={13} />Mejor histórico</span><strong data-testid="best-fitness">{format(snapshot.best.fitness, snapshot.problem.permutation || config.problem === 'function' ? 2 : 0)}</strong>
+            <div><span><Target size={13} />Mejor histórico</span><strong data-testid="best-fitness">{format(snapshot.best.fitness, fitnessDigits(snapshot.problem))}</strong>
               <small className="positive">{snapshot.history[0].best === 0
                 ? `+${format(Math.abs(snapshot.best.fitness), 1)} de mejora`
                 : `+${format(snapshot.improvement, 1)} % de mejora`}</small></div>
@@ -244,11 +255,13 @@ export default function App() {
                 className={`scene ${config.problem === 'knapsack' && view === 'solution' ? 'scene-knapsack' : ''}`}
                 style={{ '--knapsack-height': `${Math.max(310, Math.ceil(config.size / 4) * 42 + 60)}px` } as React.CSSProperties}>
                 <Canvas draw={view === 'solution' ? solutionPainter(snapshot) : populationPainter(snapshot)}
+                  animate={view === 'solution' && snapshot.problem.id === 'rockets'}
                   label={view === 'solution' ? `Mejor solución de ${problem.name}: ${sceneDetail(snapshot)}` : 'Distribución del fitness de la población'}
                   testId="solution-canvas" className="solution-canvas" />
                 <div className="scene-caption">
                   <span><span className="legend-dot green" />{view === 'solution' ? sceneDetail(snapshot) : `${snapshot.population.length} individuos`}</span>
                   {config.problem === 'sequence' && view === 'solution' ? <span>Objetivo / candidato</span> :
+                    config.problem === 'rockets' && view === 'solution' ? <span>Población actual · <span className="legend-dot green" />mejor histórico</span> :
                     view === 'population' ? <span className="heat-legend">Menor <i /> Mayor aptitud</span> : <span>Mejor histórico</span>}
                 </div>
               </div>
@@ -257,13 +270,13 @@ export default function App() {
               <h3>Registro de mejoras</h3>
               <ol className="discoveries">{snapshot.discoveries.map((discovery, i) => <li key={discovery.generation}>
                 <span className={`discovery-node ${i === 0 ? 'latest' : ''}`} />
-                <div><strong>{format(discovery.fitness, snapshot.problem.permutation || config.problem === 'function' ? 2 : 0)}</strong>
+                <div><strong>{format(discovery.fitness, fitnessDigits(snapshot.problem))}</strong>
                   <span>{discovery.generation === 0 ? 'Población inicial' : `Generación ${discovery.generation}`}</span></div>
                 {i === 0 ? <span className="best-label">MEJOR</span> : null}
               </li>)}</ol>
               <div className="chromosome"><h3>Cromosoma</h3>
                 <div className="gene-values" data-testid="chromosome">{snapshot.best.genes.map((gene, i) =>
-                  <span key={i}>{snapshot.problem.permutation ? gene + 1 : gene}</span>)}</div>
+                  <span key={i}>{snapshot.problem.permutation ? gene + 1 : snapshot.problem.id === 'rockets' ? DIRECTION_ARROWS[gene] : gene}</span>)}</div>
                 <span className="gene-count">{snapshot.best.genes.length} genes</span>
               </div>
             </aside>

@@ -1,5 +1,6 @@
 import seedrandom from 'seedrandom';
 import { validateConfig } from './config';
+import { createWorld, DIRECTIONS, rocketFitness } from './rockets';
 import type { Config, Crossover, Discovery, HistoryPoint, Individual, Problem, Snapshot, Status } from './types';
 
 export const MAX_GENERATIONS = 5000;
@@ -10,7 +11,8 @@ export function createProblem(config: Config, random: Random): Problem {
   const permutation = config.problem === 'tsp' || config.problem === 'circular';
   const problem: Problem = {
     id: config.problem, size: config.size, permutation, minimize: permutation,
-    domain: permutation || config.problem === 'queens' ? config.size : config.problem === 'sequence' ? 10 : 2,
+    domain: permutation || config.problem === 'queens' ? config.size : config.problem === 'sequence' ? 10
+      : config.problem === 'rockets' ? DIRECTIONS : 2,
     points: [], target: [], weights: [], values: [], capacity: 0,
   };
   for (let i = 0; i < config.size; i++) {
@@ -26,6 +28,7 @@ export function createProblem(config: Config, random: Random): Problem {
     }
   }
   problem.capacity = Math.floor(problem.weights.reduce((sum, weight) => sum + weight, 0) * 0.8);
+  if (config.problem === 'rockets') problem.world = createWorld(config.scenario, random);
   return problem;
 }
 
@@ -70,6 +73,8 @@ export function evaluate(problem: Problem, genes: number[]): number {
       return genes.reduce((sum, gene, index) => sum + Number(gene === problem.target[index]), 0);
     case 'function':
       return objective(binaryToReal(genes));
+    case 'rockets':
+      return rocketFitness(problem.world!, genes);
   }
 }
 

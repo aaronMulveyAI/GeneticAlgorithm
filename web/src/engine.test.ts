@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import seedrandom from 'seedrandom';
 import { DEFAULT_CONFIG, PROBLEMS, readConfig, shareUrl, validateConfig } from './config';
 import { binaryToReal, createProblem, cross, evaluate, GeneticEngine, MAX_GENERATIONS, mutate, objective, selectionWeights, validateGenes } from './engine';
-import type { Config, Crossover, ProblemId, Selection } from './types';
+import { distanceField, flyRocket, remainingDistance } from './rockets';
+import type { Config, Crossover, ProblemId, Scenario, Selection } from './types';
 
 describe('Correspondencia con los problemas Java', () => {
   it('puntúa tableros válidos y conflictos conocidos', () => {
@@ -32,6 +33,48 @@ describe('Correspondencia con los problemas Java', () => {
     expect(binaryToReal(Array(32).fill(0))).toBe(-100);
     expect(binaryToReal(Array(32).fill(1))).toBe(100);
     expect(objective(0)).toBe(7.5);
+  });
+});
+
+describe('Cohetes inteligentes', () => {
+  const rockets = (scenario: Scenario, seed = 7) => createProblem(
+    { ...DEFAULT_CONFIG, problem: 'rockets', size: 140, scenario, seed }, seedrandom(String(seed)));
+  const straightUp = Array(140).fill(0);
+  it('vuela en línea recta, aterriza y premia llegar antes', () => {
+    const problem = rockets('wall');
+    problem.world!.obstacles = [];
+    const flight = flyRocket(problem.world!, straightUp);
+    expect(flight.outcome).toBe('landed');
+    expect(flight.path.every(point => Math.abs(point.x - 50) < 1e-9)).toBe(true);
+    expect(evaluate(problem, straightUp)).toBeGreaterThan(100);
+    const detour = [...Array.from({ length: 40 }, (_, i) => i % 2 ? 6 : 2), ...Array(100).fill(0)];
+    expect(flyRocket(problem.world!, detour).outcome).toBe('landed');
+    expect(evaluate(problem, detour)).toBeLessThan(evaluate(problem, straightUp));
+  });
+  it('se estrella contra el muro y lo penaliza', () => {
+    const problem = rockets('wall');
+    expect(flyRocket(problem.world!, straightUp).outcome).toBe('crashed');
+    expect(evaluate(problem, straightUp)).toBeLessThan(50);
+    expect(evaluate(problem, Array(140).fill(4))).toBe(0);
+  });
+  it('mide el avance rodeando los obstáculos', () => {
+    const world = rockets('wall').world!;
+    expect(remainingDistance(world, world.goal)).toBe(0);
+    expect(remainingDistance(world, world.start)).toBeGreaterThan(world.start.y - world.goal.y + 10);
+    expect(remainingDistance(world, { x: 50, y: 52.5 })).toBeGreaterThan(remainingDistance(world, { x: 8, y: 52.5 }));
+  });
+  it('genera campos de asteroides reproducibles y con pasillo hasta la diana', () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const world = rockets('asteroids', seed).world!;
+      expect(world.obstacles.length).toBeGreaterThan(0);
+      expect(Number.isFinite(distanceField(world, 5)[93 * 100 + 50])).toBe(true);
+      expect(rockets('asteroids', seed).world).toEqual(world);
+    }
+  });
+  it('aprende a rodear el muro', () => {
+    const engine = new GeneticEngine({ ...DEFAULT_CONFIG, problem: 'rockets', size: 140, mutationRate: 0.01, scenario: 'wall' });
+    engine.evolve(100);
+    expect(engine.snapshot().best.fitness).toBeGreaterThan(100);
   });
 });
 
@@ -86,7 +129,7 @@ describe('Operadores y simulaciones', () => {
     expect(engine.snapshot().current.fitness).toBeGreaterThanOrEqual(before);
   });
   it('muta bits, dígitos y columnas en sus dominios, incluidos tamaños pequeños', () => {
-    for (const [id, size] of [['queens', 1], ['sequence', 1], ['sequence', 40], ['knapsack', 3], ['function', 32]] as const) {
+    for (const [id, size] of [['queens', 1], ['sequence', 1], ['sequence', 40], ['knapsack', 3], ['function', 32], ['rockets', 40]] as const) {
       const problem = createProblem({ ...DEFAULT_CONFIG, problem: id, size }, seedrandom('fixture'));
       const genes = Array(size).fill(0);
       mutate(problem, genes, 1, seedrandom('mutation'));
@@ -117,7 +160,7 @@ describe('Operadores y simulaciones', () => {
 
 describe('Configuración compartida y validación', () => {
   it('comparte y recupera todos los parámetros mediante la URL', () => {
-    const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const };
+    const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const, scenario: 'slalom' as const };
     const url = shareUrl(config, { origin: 'https://demo.vercel.app', pathname: '/' });
     expect(readConfig(new URL(url).search)).toEqual(config);
   });
@@ -126,6 +169,7 @@ describe('Configuración compartida y validación', () => {
     expect(readConfig('?config=%7B')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"seed":-1}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"__proto__"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"rockets","size":140,"scenario":"toString"}')).toEqual(DEFAULT_CONFIG);
     for (const invalid of [{ size: 0 }, { mutationRate: NaN }, { crossoverRate: 2 }, { seed: -1 }, { populationSize: 501 }]) {
       expect(() => validateConfig({ ...DEFAULT_CONFIG, ...invalid })).toThrow();
     }

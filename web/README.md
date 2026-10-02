@@ -1,6 +1,6 @@
 # Demo web de Genetic Algorithm
 
-Aplicación en castellano para explorar los seis problemas del proyecto desde el navegador. La aplicación Java y sus pruebas siguen en sus carpetas originales.
+Aplicación en castellano para explorar desde el navegador los seis problemas del proyecto y una simulación animada de cohetes inteligentes. La aplicación Java y sus pruebas siguen en sus carpetas originales.
 
 ## Desarrollo local
 
@@ -60,6 +60,15 @@ El botón Compartir genera un enlace con los parámetros y la semilla. Al abrirl
 Las reinas, la mochila, la secuencia y la función usan las mismas reglas de evaluación. El viajante web usa ciudades en un plano y distancias euclídeas para que el dibujo y el fitness correspondan; el viajante Java original permite matrices de distancias arbitrarias. La versión circular web usa radio 40.
 
 Cada simulación tiene un generador pseudoaleatorio `seedrandom` independiente. La misma semilla y configuración producen el mismo resultado en la versión web, aunque la secuencia aleatoria no coincide con `java.util.Random`.
+
+## Cohetes inteligentes
+
+Problema exclusivo de la versión web, sin equivalente en Java (`src/rockets.ts`). Cada cromosoma es una secuencia de impulsos, uno por paso de vuelo, en ocho direcciones. Los cohetes salen de la base con inercia y velocidad máxima limitada; se estrellan si tocan un obstáculo o salen del mapa.
+
+- Fitness de 0 a 100 según el avance hacia la diana, medido como distancia de navegación que rodea los obstáculos (Dijkstra sobre una cuadrícula de 100 × 100). Un cohete estrellado conserva la mitad de su avance.
+- Aterrizar puntúa de 100 a 200: cuanto antes llega, más puntos.
+- Escenarios: muro central, zigzag y un campo de asteroides generado con la semilla que siempre deja un pasillo de al menos 10 unidades.
+- La vista Mejor solución anima el vuelo de toda la población actual y resalta en verde el mejor cohete histórico. Mientras la simulación avanza, cada vuelta muestra la generación más reciente; en pausa, cada generación despega desde el principio. Con movimiento reducido activado se muestra el estado final del vuelo.
 
 ## Límites de la demo
 

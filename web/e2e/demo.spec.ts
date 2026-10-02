@@ -26,9 +26,9 @@ test('avanza, ejecuta, pausa y reinicia desde el navegador', async ({ page }, te
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-queens.png`, fullPage: true });
 });
 
-test('los seis problemas dibujan soluciones reales y caben en pantalla', async ({ page }, testInfo) => {
+test('los siete problemas dibujan soluciones reales y caben en pantalla', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
-  for (const problem of ['queens', 'tsp', 'circular', 'knapsack', 'sequence', 'function']) {
+  for (const problem of ['queens', 'tsp', 'circular', 'knapsack', 'sequence', 'function', 'rockets']) {
     await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption(problem);
     await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Avanzar una generación', exact: true }).click();
@@ -45,6 +45,29 @@ test('los seis problemas dibujan soluciones reales y caben en pantalla', async (
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await page.screenshot({ path: `artifacts/${testInfo.project.name}-${problem}.png`, fullPage: true });
   }
+});
+
+test('los cohetes vuelan animados y cambian de escenario', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
+  await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('rockets');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  await expect(page.getByRole('combobox', { name: 'Escenario', exact: true })).toHaveValue('wall');
+  await expect(page.getByTestId('chromosome').locator('span')).toHaveCount(140);
+  await expect(page.getByTestId('chromosome').locator('span').first()).toHaveText(/[↑↗→↘↓↙←↖]/);
+  const frame = () => page.getByTestId('solution-canvas').evaluate((element: HTMLCanvasElement) => element.toDataURL());
+  const first = await frame();
+  await expect.poll(frame).not.toBe(first);
+  await page.getByRole('combobox', { name: 'Escenario', exact: true }).selectOption('asteroids');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Ocultar parámetros' }).click();
+  await page.getByRole('button', { name: 'Avanzar 100 generaciones', exact: true }).click();
+  await expect(page.getByTestId('generation')).toHaveText('100', { timeout: 15000 });
+  await expect(page.getByTestId('solution-canvas')).toHaveAttribute('aria-label', /cohetes llegan a la diana/);
+  await page.waitForTimeout(4500);
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-rockets-flight.png`, fullPage: true });
 });
 
 test('población, descarga y configuración reproducible', async ({ page, browserName }, testInfo) => {

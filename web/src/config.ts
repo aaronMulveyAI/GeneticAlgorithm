@@ -1,4 +1,4 @@
-import type { Config, ProblemId } from './types';
+import type { Config, ProblemId, Scenario } from './types';
 
 export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: string; sizeLabel: string; defaultSize: number; min: number; max: number }> = {
   queens: { name: 'N-reinas', short: 'Reinas', unit: 'pares sin conflicto', sizeLabel: 'Reinas', defaultSize: 8, min: 1, max: 24 },
@@ -7,12 +7,19 @@ export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: st
   knapsack: { name: 'Problema de la mochila', short: 'Mochila', unit: 'valor total', sizeLabel: 'Objetos', defaultSize: 20, min: 3, max: 48 },
   sequence: { name: 'Adivinar la secuencia', short: 'Secuencia', unit: 'dígitos correctos', sizeLabel: 'Dígitos', defaultSize: 12, min: 1, max: 40 },
   function: { name: 'Optimización de función', short: 'Función', unit: 'valor de f(x)', sizeLabel: 'Bits', defaultSize: 32, min: 32, max: 32 },
+  rockets: { name: 'Cohetes inteligentes', short: 'Cohetes', unit: 'puntos (100 = diana)', sizeLabel: 'Pasos de vuelo', defaultSize: 140, min: 40, max: 300 },
+};
+
+export const SCENARIOS: Record<Scenario, string> = {
+  wall: 'Muro central',
+  slalom: 'Zigzag (difícil)',
+  asteroids: 'Asteroides (según la semilla)',
 };
 
 export const DEFAULT_CONFIG: Config = {
   problem: 'queens', size: 8, populationSize: 96, selection: 'tournament',
   crossover: 'uniform', mutationRate: 0.025, crossoverRate: 0.85,
-  tournamentSize: 5, seed: 42, elitism: false,
+  tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall',
 };
 
 export function validateConfig(config: Config): void {
@@ -34,7 +41,8 @@ export function validateConfig(config: Config): void {
     if (!Number.isFinite(rate) || rate < 0 || rate > 1) throw new Error('Las tasas deben estar entre 0 y 100 %.');
   }
   if (!['tournament', 'roulette', 'truncation', 'residual'].includes(config.selection)
-      || !['single', 'double', 'uniform'].includes(config.crossover) || typeof config.elitism !== 'boolean') {
+      || !['single', 'double', 'uniform'].includes(config.crossover) || typeof config.elitism !== 'boolean'
+      || typeof config.scenario !== 'string' || !Object.hasOwn(SCENARIOS, config.scenario)) {
     throw new Error('Operadores no válidos.');
   }
 }
