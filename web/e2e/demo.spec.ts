@@ -95,6 +95,39 @@ test('la criatura anda animada y cambia de cuerpo y terreno', async ({ page }, t
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-walker-run.png`, fullPage: true });
 });
 
+test('la función 2D se ve en 3D, se gira y tiene mapa de calor', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
+  await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('function');
+  await expect(page.getByRole('combobox', { name: 'Función', exact: true })).toHaveValue('rastrigin');
+  await page.getByRole('combobox', { name: 'Función', exact: true }).selectOption('himmelblau');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Ocultar parámetros' }).click();
+  await expect(page.getByRole('tab', { name: 'Superficie 3D', exact: true })).toHaveAttribute('aria-selected', 'true');
+  const canvas = page.getByTestId('solution-canvas');
+  const frame = () => canvas.evaluate((element: HTMLCanvasElement) => element.toDataURL());
+  const first = await frame();
+  await expect.poll(frame).not.toBe(first);
+  const box = (await canvas.boundingBox())!;
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 120, box.y + box.height / 2, { steps: 6 });
+  await page.mouse.up();
+  await page.getByRole('button', { name: 'Avanzar 100 generaciones', exact: true }).click();
+  await expect(page.getByTestId('generation')).toHaveText('100', { timeout: 10000 });
+  await expect(canvas).toHaveAttribute('aria-label', /Mejor solución de Optimización de funciones: f = /);
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-surface.png`, fullPage: true });
+  await page.getByRole('tab', { name: 'Superficie 3D', exact: true }).press('ArrowRight');
+  await expect(page.getByRole('tab', { name: 'Mapa de calor', exact: true })).toBeFocused();
+  await expect(page.getByRole('tab', { name: 'Mapa de calor', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(canvas).toHaveAttribute('aria-label', /Mapa de calor/);
+  await page.waitForTimeout(500);
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-heatmap.png`, fullPage: true });
+});
+
 test('población, descarga y configuración reproducible', async ({ page, browserName }, testInfo) => {
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
   await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('sequence');

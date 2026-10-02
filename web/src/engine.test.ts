@@ -4,6 +4,7 @@ import { DEFAULT_CONFIG, PROBLEMS, readConfig, shareUrl, validateConfig } from '
 import { binaryToReal, createProblem, cross, evaluate, GeneticEngine, MAX_GENERATIONS, mutate, objective, selectionWeights, validateGenes } from './engine';
 import { distanceField, flyRocket, remainingDistance } from './rockets';
 import { BODIES, geneCount, simulateWalker, terrainHeight } from './walker';
+import { decodePoint, LANDSCAPES, normalizedHeight } from './landscapes';
 import type { Config, Crossover, ProblemId, Scenario, Selection } from './types';
 
 describe('Correspondencia con los problemas Java', () => {
@@ -34,6 +35,39 @@ describe('Correspondencia con los problemas Java', () => {
     expect(binaryToReal(Array(32).fill(0))).toBe(-100);
     expect(binaryToReal(Array(32).fill(1))).toBe(100);
     expect(objective(0)).toBe(7.5);
+  });
+});
+
+describe('Funciones de dos variables', () => {
+  const landscapes = Object.keys(LANDSCAPES) as (keyof typeof LANDSCAPES)[];
+  it('decodifica 16 bits por eje en los extremos del dominio', () => {
+    for (const landscape of landscapes) {
+      const [low, high] = LANDSCAPES[landscape].range;
+      expect(decodePoint(landscape, Array(32).fill(0))).toEqual({ x: low, y: low });
+      expect(decodePoint(landscape, Array(32).fill(1))).toEqual({ x: high, y: high });
+      expect(decodePoint(landscape, [...Array(16).fill(1), ...Array(16).fill(0)])).toEqual({ x: high, y: low });
+    }
+  });
+  it('vale 0 en los óptimos globales conocidos', () => {
+    for (const landscape of landscapes) for (const optimum of LANDSCAPES[landscape].optima) {
+      expect(LANDSCAPES[landscape].f(optimum.x, optimum.y)).toBeCloseTo(0, 3);
+      expect(normalizedHeight(landscape, LANDSCAPES[landscape].f(optimum.x, optimum.y))).toBeLessThan(0.01);
+    }
+  });
+  it('minimiza las funciones 2D y mantiene la original como en Java', () => {
+    const rastrigin = createProblem({ ...DEFAULT_CONFIG, problem: 'function', size: 32, landscape: 'rastrigin' }, seedrandom('fixture'));
+    expect(rastrigin.minimize).toBe(true);
+    const genes = [0, ...Array(15).fill(1), 0, ...Array(15).fill(1)];
+    const point = decodePoint('rastrigin', genes);
+    expect(evaluate(rastrigin, genes)).toBe(LANDSCAPES.rastrigin.f(point.x, point.y));
+    const original = createProblem({ ...DEFAULT_CONFIG, problem: 'function', size: 32, landscape: 'original' }, seedrandom('fixture'));
+    expect(original.minimize).toBe(false);
+    expect(evaluate(original, genes)).toBe(objective(binaryToReal(genes)));
+  });
+  it('encuentra el valle de Ackley', () => {
+    const engine = new GeneticEngine({ ...DEFAULT_CONFIG, problem: 'function', size: 32, landscape: 'ackley', mutationRate: 0.01 });
+    engine.evolve(60);
+    expect(engine.snapshot().best.fitness).toBeLessThan(0.05);
   });
 });
 
@@ -217,7 +251,7 @@ describe('Operadores y simulaciones', () => {
 describe('Configuración compartida y validación', () => {
   it('comparte y recupera todos los parámetros mediante la URL', () => {
     const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const, scenario: 'slalom' as const,
-      creature: 'worm' as const, terrain: 'hills' as const };
+      creature: 'worm' as const, terrain: 'hills' as const, landscape: 'himmelblau' as const };
     const url = shareUrl(config, { origin: 'https://demo.vercel.app', pathname: '/' });
     expect(readConfig(new URL(url).search)).toEqual(config);
   });
@@ -229,6 +263,7 @@ describe('Configuración compartida y validación', () => {
     expect(readConfig('?config={"problem":"rockets","size":140,"scenario":"toString"}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"walker","size":10,"creature":"__proto__"}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"walker","size":10,"terrain":"lava"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"function","size":32,"landscape":"valueOf"}')).toEqual(DEFAULT_CONFIG);
     for (const invalid of [{ size: 0 }, { mutationRate: NaN }, { crossoverRate: 2 }, { seed: -1 }, { populationSize: 501 }]) {
       expect(() => validateConfig({ ...DEFAULT_CONFIG, ...invalid })).toThrow();
     }

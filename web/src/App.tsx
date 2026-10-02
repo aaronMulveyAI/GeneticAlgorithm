@@ -6,18 +6,22 @@ import {
 import { Canvas } from './Canvas';
 import { CREATURES, DEFAULT_CONFIG, PROBLEMS, readConfig, SCENARIOS, shareUrl, TERRAINS } from './config';
 import { binaryToReal } from './engine';
+import { decodePoint, LANDSCAPE_NAMES } from './landscapes';
 import { DIRECTION_ARROWS } from './rockets';
+import { heatmapPainter, rotateSurface, surfacePainter } from './surface';
 import { useSimulation } from './useSimulation';
 import { evolutionPainter, histogramPainter, populationPainter, rocketFlights, solutionPainter, walkerRuns } from './visualizations';
-import type { Config, Creature, Crossover, ProblemId, Scenario, Selection, Snapshot, Terrain } from './types';
+import type { Config, Creature, Crossover, Landscape, ProblemId, Scenario, Selection, Snapshot, Terrain } from './types';
 
 const formatters = Array.from({ length: 5 }, (_, digits) => new Intl.NumberFormat('es-ES', {
   maximumFractionDigits: digits, minimumFractionDigits: digits,
 }));
 const format = (value: number, digits = 2) => formatters[digits].format(value);
-const fitnessDigits = (problem: Snapshot['problem']) => problem.permutation || problem.id === 'function' || problem.id === 'walker' ? 2
-  : problem.id === 'rockets' ? 1 : 0;
-const animated = (problem: Snapshot['problem']) => problem.id === 'rockets' || problem.id === 'walker';
+const surface = (problem: Snapshot['problem']) => problem.id === 'function' && problem.landscape !== 'original';
+const fitnessDigits = (problem: Snapshot['problem']) => surface(problem) ? 3
+  : problem.permutation || problem.id === 'function' || problem.id === 'walker' ? 2 : problem.id === 'rockets' ? 1 : 0;
+const animated = (problem: Snapshot['problem']) => problem.id === 'rockets' || problem.id === 'walker' || surface(problem);
+type View = 'solution' | 'heatmap' | 'population';
 
 function NumberField({ label, value, min, max, disabled, change }: {
   label: string; value: number; min: number; max: number; disabled: boolean; change: (value: number) => void;
@@ -43,6 +47,10 @@ function sceneDetail(snapshot: Snapshot): string {
   }
   if (problem.permutation) return `Ruta cerrada · ${problem.size} ciudades`;
   if (problem.id === 'sequence') return `${best.fitness} de ${problem.size} dígitos correctos`;
+  if (surface(problem)) {
+    const point = decodePoint(problem.landscape as Exclude<Landscape, 'original'>, best.genes);
+    return `f = ${format(best.fitness, 4)} en (${format(point.x, 3)}; ${format(point.y, 3)})`;
+  }
   if (problem.id === 'function') return `x = ${format(binaryToReal(best.genes), 4)}`;
   if (problem.id === 'rockets') {
     const landed = rocketFlights(snapshot).population.filter(flight => flight.outcome === 'landed').length;
@@ -59,7 +67,7 @@ function sceneDetail(snapshot: Snapshot): string {
 export default function App() {
   const [config, setConfig] = useState<Config>(() => readConfig(window.location.search));
   const [speed, setSpeed] = useState(4);
-  const [view, setView] = useState<'solution' | 'population'>('solution');
+  const [view, setView] = useState<View>('solution');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const { snapshot, pending, error, command, restart } = useSimulation(config);
@@ -110,11 +118,17 @@ export default function App() {
     setNotice('Resultado descargado');
   }
 
+  const tabs: [View, string][] = snapshot && surface(snapshot.problem)
+    ? [['solution', 'Superficie 3D'], ['heatmap', 'Mapa de calor'], ['population', 'Población']]
+    : [['solution', 'Mejor solución'], ['population', 'Población']];
+  const shown: View = tabs.some(([id]) => id === view) ? view : 'solution';
+
   function navigateTabs(event: React.KeyboardEvent<HTMLButtonElement>) {
     if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
     event.preventDefault();
-    const next = event.key === 'Home' ? 'solution' : event.key === 'End' ? 'population'
-      : view === 'solution' ? 'population' : 'solution';
+    const index = tabs.findIndex(([id]) => id === shown);
+    const next = tabs[event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+      : (index + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length][0];
     setView(next);
     document.getElementById(`${next}-tab`)?.focus();
   }
@@ -156,6 +170,11 @@ export default function App() {
           {config.problem === 'rockets' ? <label className="field"><span>Escenario</span>
             <select value={config.scenario} onChange={event => update('scenario', event.target.value as Scenario)}>
               {Object.entries(SCENARIOS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </label> : null}
+          {config.problem === 'function' ? <label className="field"><span>Función</span>
+            <select value={config.landscape} onChange={event => update('landscape', event.target.value as Landscape)}>
+              {Object.entries(LANDSCAPE_NAMES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
             </select>
           </label> : null}
           {config.problem === 'walker' ? <>
@@ -211,7 +230,7 @@ export default function App() {
         <div className="experiment-heading">
           <div><div className="eyebrow">EXPERIMENTO <span>{problem.short.toUpperCase()}</span></div>
             <h2>{config.problem === 'queens' ? `${config.size} reinas` : problem.name}</h2>
-            <p>{snapshot?.problem.minimize ? 'Minimizar' : 'Maximizar'} <span>·</span> {problem.unit}</p>
+            <p>{snapshot?.problem.minimize ? 'Minimizar' : 'Maximizar'} <span>·</span> {config.problem === 'function' && config.landscape === 'original' ? 'valor de f(x)' : problem.unit}</p>
           </div>
           <div className={`status ${running ? 'is-running' : ''}`} role="status">
             {pending ? <LoaderCircle size={12} className="spin" /> : <span className="status-dot" />}{status}
@@ -262,26 +281,30 @@ export default function App() {
             <div className="scene-column">
               <div className="section-heading">
                 <div className="tabs" role="tablist" aria-label="Visualización">
-                  <button role="tab" id="solution-tab" aria-controls="scene-panel" aria-selected={view === 'solution'} tabIndex={view === 'solution' ? 0 : -1} onKeyDown={navigateTabs}
-                    onClick={() => setView('solution')}>Mejor solución</button>
-                  <button role="tab" id="population-tab" aria-controls="scene-panel" aria-selected={view === 'population'} tabIndex={view === 'population' ? 0 : -1} onKeyDown={navigateTabs}
-                    onClick={() => setView('population')}>Población</button>
+                  {tabs.map(([id, name]) => <button key={id} role="tab" id={`${id}-tab`} aria-controls="scene-panel"
+                    aria-selected={shown === id} tabIndex={shown === id ? 0 : -1} onKeyDown={navigateTabs}
+                    onClick={() => setView(id)}>{name}</button>)}
                 </div>
                 <span className="generation-tag">G{snapshot.generation}</span>
               </div>
-              <div id="scene-panel" role="tabpanel" aria-labelledby={view === 'solution' ? 'solution-tab' : 'population-tab'}
-                className={`scene ${config.problem === 'knapsack' && view === 'solution' ? 'scene-knapsack' : ''}`}
+              <div id="scene-panel" role="tabpanel" aria-labelledby={`${shown}-tab`}
+                className={`scene ${config.problem === 'knapsack' && shown === 'solution' ? 'scene-knapsack' : ''} ${surface(snapshot.problem) && shown !== 'population' ? 'scene-tall' : ''}`}
                 style={{ '--knapsack-height': `${Math.max(310, Math.ceil(config.size / 4) * 42 + 60)}px` } as React.CSSProperties}>
-                <Canvas draw={view === 'solution' ? solutionPainter(snapshot) : populationPainter(snapshot)}
-                  animate={view === 'solution' && animated(snapshot.problem)}
-                  label={view === 'solution' ? `Mejor solución de ${problem.name}: ${sceneDetail(snapshot)}` : 'Distribución del fitness de la población'}
+                <Canvas draw={shown === 'population' ? populationPainter(snapshot) : shown === 'heatmap' ? heatmapPainter(snapshot)
+                  : surface(snapshot.problem) ? surfacePainter(snapshot) : solutionPainter(snapshot)}
+                  animate={shown !== 'population' && animated(snapshot.problem)}
+                  onDrag={shown === 'solution' && surface(snapshot.problem) ? rotateSurface : undefined}
+                  label={shown === 'population' ? 'Distribución del fitness de la población'
+                    : `${shown === 'heatmap' ? 'Mapa de calor' : 'Mejor solución'} de ${problem.name}: ${sceneDetail(snapshot)}`}
                   testId="solution-canvas" className="solution-canvas" />
                 <div className="scene-caption">
-                  <span><span className="legend-dot green" />{view === 'solution' ? sceneDetail(snapshot) : `${snapshot.population.length} individuos`}</span>
-                  {config.problem === 'sequence' && view === 'solution' ? <span>Objetivo / candidato</span> :
-                    config.problem === 'rockets' && view === 'solution' ? <span>Población actual · <span className="legend-dot green" />mejor histórico</span> :
-                    config.problem === 'walker' && view === 'solution' ? <span>Azul: generación actual · negro: mejor histórico</span> :
-                    view === 'population' ? <span className="heat-legend">Menor <i /> Mayor aptitud</span> : <span>Mejor histórico</span>}
+                  <span><span className="legend-dot green" />{shown !== 'population' ? sceneDetail(snapshot) : `${snapshot.population.length} individuos`}</span>
+                  {shown === 'population' ? <span className="heat-legend">Menor <i /> Mayor aptitud</span>
+                    : config.problem === 'sequence' ? <span>Objetivo / candidato</span>
+                    : config.problem === 'rockets' ? <span>Población actual · <span className="legend-dot green" />mejor histórico</span>
+                    : config.problem === 'walker' ? <span>Azul: generación actual · negro: mejor histórico</span>
+                    : surface(snapshot.problem) ? <span>★ óptimo global · <span className="legend-dot red" />mejor histórico</span>
+                    : <span>Mejor histórico</span>}
                 </div>
               </div>
             </div>

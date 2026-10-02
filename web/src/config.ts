@@ -1,3 +1,4 @@
+import { LANDSCAPE_NAMES } from './landscapes';
 import type { Config, Creature, ProblemId, Scenario, Terrain } from './types';
 
 export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: string; sizeLabel: string; defaultSize: number; min: number; max: number }> = {
@@ -6,7 +7,7 @@ export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: st
   circular: { name: 'Viajante circular', short: 'Circular', unit: 'unidades de distancia', sizeLabel: 'Ciudades', defaultSize: 16, min: 3, max: 60 },
   knapsack: { name: 'Problema de la mochila', short: 'Mochila', unit: 'valor total', sizeLabel: 'Objetos', defaultSize: 20, min: 3, max: 48 },
   sequence: { name: 'Adivinar la secuencia', short: 'Secuencia', unit: 'dígitos correctos', sizeLabel: 'Dígitos', defaultSize: 12, min: 1, max: 40 },
-  function: { name: 'Optimización de función', short: 'Función', unit: 'valor de f(x)', sizeLabel: 'Bits', defaultSize: 32, min: 32, max: 32 },
+  function: { name: 'Optimización de funciones', short: 'Función', unit: 'valor de f(x, y)', sizeLabel: 'Bits', defaultSize: 32, min: 32, max: 32 },
   rockets: { name: 'Cohetes inteligentes', short: 'Cohetes', unit: 'puntos (100 = diana)', sizeLabel: 'Pasos de vuelo', defaultSize: 140, min: 40, max: 300 },
   walker: { name: 'Criatura que aprende a andar', short: 'Criatura', unit: 'metros recorridos', sizeLabel: 'Duración (s)', defaultSize: 10, min: 4, max: 20 },
 };
@@ -23,7 +24,7 @@ export const TERRAINS: Record<Terrain, string> = { flat: 'Llano', hills: 'Colina
 export const DEFAULT_CONFIG: Config = {
   problem: 'queens', size: 8, populationSize: 96, selection: 'tournament',
   crossover: 'uniform', mutationRate: 0.025, crossoverRate: 0.85,
-  tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall', creature: 'quadruped', terrain: 'flat',
+  tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall', creature: 'quadruped', terrain: 'flat', landscape: 'rastrigin',
 };
 
 export function validateConfig(config: Config): void {
@@ -48,7 +49,8 @@ export function validateConfig(config: Config): void {
       || !['single', 'double', 'uniform'].includes(config.crossover) || typeof config.elitism !== 'boolean'
       || typeof config.scenario !== 'string' || !Object.hasOwn(SCENARIOS, config.scenario)
       || typeof config.creature !== 'string' || !Object.hasOwn(CREATURES, config.creature)
-      || typeof config.terrain !== 'string' || !Object.hasOwn(TERRAINS, config.terrain)) {
+      || typeof config.terrain !== 'string' || !Object.hasOwn(TERRAINS, config.terrain)
+      || typeof config.landscape !== 'string' || !Object.hasOwn(LANDSCAPE_NAMES, config.landscape)) {
     throw new Error('Operadores no válidos.');
   }
 }

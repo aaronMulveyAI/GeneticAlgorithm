@@ -94,12 +94,14 @@ main { min-width: 0; padding: 32px 34px 0; background: #fafbfc; }
 .scene { position: relative; }
 canvas { display: block; width: 100%; }
 .solution-canvas { height: 330px; }
+.scene-tall .solution-canvas { height: 440px; }
 .scene-caption { height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 18px; font-size: 10px; color: #8b95a1; border-top: 1px solid #f0f3f6; }
 .scene-caption > span { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .scene-caption > span:first-child { color: #616e7e; }
 .legend-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .legend-dot.green { background: var(--green); }
 .legend-dot.blue { background: #3973d6; }
+.legend-dot.red { background: #d35a62; }
 .heat-legend { font-size: 9px; white-space: nowrap; }
 .heat-legend i { width: 35px; height: 5px; background: linear-gradient(90deg, #f3cbc3, #439d70); border-radius: 2px; }
 .results-column { min-width: 0; padding: 18px; border-left: 1px solid var(--border); }
@@ -132,7 +134,7 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
 .spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: 0.4; } }
-@media (min-width: 1500px) { .solution-canvas { height: 400px; } .chart-canvas { height: 200px; } }
+@media (min-width: 1500px) { .solution-canvas { height: 400px; } .scene-tall .solution-canvas { height: 500px; } .chart-canvas { height: 200px; } }
 @media (max-width: 1150px) {
   .workspace { grid-template-columns: 230px minmax(0, 1fr); }
   .sidebar { padding: 25px 18px; }
@@ -187,6 +189,7 @@ footer { display: flex; justify-content: space-between; align-items: center; gap
   .visual-section { display: block; }
   .solution-canvas { height: 310px; }
   .scene-knapsack .solution-canvas { height: var(--knapsack-height); }
+  .scene-tall .solution-canvas { height: 340px; }
   .scene-caption { padding: 0 12px; font-size: 9px; }
   .scene-caption > span:last-child { font-size: 8px; }
   .results-column { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; border-left: 0; border-top: 1px solid var(--border); padding: 17px 12px; }

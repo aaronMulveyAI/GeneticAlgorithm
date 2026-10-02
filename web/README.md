@@ -61,6 +61,19 @@ Las reinas, la mochila, la secuencia y la función usan las mismas reglas de eva
 
 Cada simulación tiene un generador pseudoaleatorio independiente (algoritmo Alea de `seedrandom`). Con el ARC4 por defecto, las semillas cuyos dígitos se repiten (1, 11, 111…) producían la misma ejecución. La misma semilla y configuración producen el mismo resultado en la versión web, aunque la secuencia aleatoria no coincide con `java.util.Random`.
 
+## Optimización de funciones
+
+El problema de funciones ofrece cuatro funciones de prueba clásicas de dos variables, que se minimizan, además de la función original de una variable de la versión Java, que se maximiza (`src/landscapes.ts`):
+
+| Función | Dominio | Qué muestra |
+| --- | --- | --- |
+| Rastrigin | ±5,12 | Cientos de mínimos locales en cuadrícula |
+| Ackley | ±5 | Paisaje casi plano con un embudo central |
+| Himmelblau | ±5 | Cuatro mínimos globales igual de buenos |
+| Schwefel | ±500 | El mejor valle está lejos del segundo mejor |
+
+El cromosoma tiene 32 bits: 16 para x y 16 para y. La vista Superficie 3D dibuja el terreno en el canvas, sin librerías, con giro automático y giro manual arrastrando. El terreno se ordena por profundidad y la población se dibuja encima. La vista Mapa de calor muestra el terreno desde arriba con curvas de nivel. En ambas, cada generación nueva se desliza desde la anterior; la estrella marca el óptimo global y el punto rojo, el mejor histórico. Con movimiento reducido activado no hay giro ni transiciones.
+
 ## Cohetes inteligentes
 
 Problema exclusivo de la versión web, sin equivalente en Java (`src/rockets.ts`). Cada cromosoma es una secuencia de impulsos, uno por paso de vuelo, en ocho direcciones. Los cohetes salen de la base con inercia y velocidad máxima limitada; se estrellan si tocan un obstáculo o salen del mapa.

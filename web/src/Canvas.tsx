@@ -1,11 +1,40 @@
-import { useLayoutEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 
 export type Painter = (context: CanvasRenderingContext2D, width: number, height: number, time: number) => void;
 
-export function Canvas({ draw, label, testId, className = '', animate = false }: {
+export function Canvas({ draw, label, testId, className = '', animate = false, onDrag }: {
   draw: Painter; label: string; testId: string; className?: string; animate?: boolean;
+  onDrag?: (dx: number, dy: number) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
+  const drag = useRef(onDrag);
+  drag.current = onDrag;
+  const draggable = Boolean(onDrag);
+  useEffect(() => {
+    if (!draggable) return;
+    const canvas = ref.current!;
+    let last: { x: number; y: number } | null = null;
+    const down = (event: PointerEvent) => {
+      last = { x: event.clientX, y: event.clientY };
+      canvas.setPointerCapture(event.pointerId);
+    };
+    const move = (event: PointerEvent) => {
+      if (!last) return;
+      drag.current?.(event.clientX - last.x, event.clientY - last.y);
+      last = { x: event.clientX, y: event.clientY };
+    };
+    const up = () => { last = null; };
+    canvas.addEventListener('pointerdown', down);
+    canvas.addEventListener('pointermove', move);
+    canvas.addEventListener('pointerup', up);
+    canvas.addEventListener('pointercancel', up);
+    return () => {
+      canvas.removeEventListener('pointerdown', down);
+      canvas.removeEventListener('pointermove', move);
+      canvas.removeEventListener('pointerup', up);
+      canvas.removeEventListener('pointercancel', up);
+    };
+  }, [draggable]);
   useLayoutEffect(() => {
     const canvas = ref.current!;
     let width = 1, height = 1, ratio = 1, frame = 0;
@@ -40,5 +69,6 @@ export function Canvas({ draw, label, testId, className = '', animate = false }:
       cancelAnimationFrame(frame);
     };
   }, [draw, animate]);
-  return <canvas ref={ref} role="img" aria-label={label} data-testid={testId} className={className} />;
+  return <canvas ref={ref} role="img" aria-label={label} data-testid={testId} className={className}
+    style={draggable ? { touchAction: 'pan-y', cursor: 'grab' } : undefined} />;
 }

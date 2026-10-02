@@ -1,6 +1,7 @@
 import seedrandom from 'seedrandom';
 import { validateConfig } from './config';
 import { createWorld, DIRECTIONS, rocketFitness } from './rockets';
+import { landscapeValue } from './landscapes';
 import { geneCount, LEVELS, simulateWalker } from './walker';
 import type { Config, Crossover, Discovery, HistoryPoint, Individual, Problem, Snapshot, Status } from './types';
 
@@ -10,9 +11,11 @@ const integer = (random: Random, bound: number) => Math.floor(random() * bound);
 
 export function createProblem(config: Config, random: Random): Problem {
   const permutation = config.problem === 'tsp' || config.problem === 'circular';
+  // Las funciones de dos variables se minimizan; la original de una variable se maximiza, como en Java.
+  const landscape2d = config.problem === 'function' && config.landscape !== 'original';
   const problem: Problem = {
     // En la criatura, el tamaño configurado es la duración de la prueba y los genes dependen del cuerpo.
-    id: config.problem, size: config.problem === 'walker' ? geneCount(config.creature) : config.size, permutation, minimize: permutation,
+    id: config.problem, size: config.problem === 'walker' ? geneCount(config.creature) : config.size, permutation, minimize: permutation || landscape2d,
     domain: permutation || config.problem === 'queens' ? config.size : config.problem === 'sequence' ? 10
       : config.problem === 'rockets' ? DIRECTIONS : config.problem === 'walker' ? LEVELS : 2,
     points: [], target: [], weights: [], values: [], capacity: 0,
@@ -31,6 +34,7 @@ export function createProblem(config: Config, random: Random): Problem {
   }
   problem.capacity = Math.floor(problem.weights.reduce((sum, weight) => sum + weight, 0) * 0.8);
   if (config.problem === 'rockets') problem.world = createWorld(config.scenario, random);
+  if (config.problem === 'function') problem.landscape = config.landscape;
   if (config.problem === 'walker') problem.walker = { creature: config.creature, terrain: config.terrain, duration: config.size };
   return problem;
 }
@@ -75,7 +79,8 @@ export function evaluate(problem: Problem, genes: number[]): number {
     case 'sequence':
       return genes.reduce((sum, gene, index) => sum + Number(gene === problem.target[index]), 0);
     case 'function':
-      return objective(binaryToReal(genes));
+      return !problem.landscape || problem.landscape === 'original'
+        ? objective(binaryToReal(genes)) : landscapeValue(problem.landscape, genes);
     case 'rockets':
       return rocketFitness(problem.world!, genes);
     case 'walker':

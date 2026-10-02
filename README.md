@@ -2,7 +2,7 @@
 
 ## Demo Web
 
-La demo interactiva para navegador está en [web/](web/README.md). Incluye los seis problemas del framework y dos simulaciones animadas exclusivas (cohetes inteligentes y una criatura que aprende a andar), controles de simulación, visualizaciones, gráficas, semilla reproducible, enlaces compartidos y exportación de resultados.
+La demo interactiva para navegador está en [web/](web/README.md). Incluye los seis problemas del framework y dos simulaciones animadas exclusivas (cohetes inteligentes y una criatura que aprende a andar), funciones de prueba en 3D y mapa de calor, controles de simulación, visualizaciones, gráficas, semilla reproducible, enlaces compartidos y exportación de resultados.
 
 ```sh
 cd web
