@@ -61,6 +61,14 @@ Las reinas, la mochila, la secuencia y la función usan las mismas reglas de eva
 
 Cada simulación tiene un generador pseudoaleatorio independiente (algoritmo Alea de `seedrandom`). Con el ARC4 por defecto, las semillas cuyos dígitos se repiten (1, 11, 111…) producían la misma ejecución. La misma semilla y configuración producen el mismo resultado en la versión web, aunque la secuencia aleatoria no coincide con `java.util.Random`.
 
+## Adivinar la secuencia
+
+El problema tiene tres modos (`src/sequence.ts`). En todos, el fitness es el número de posiciones que coinciden con el objetivo:
+
+- **Frase**: el programa de la comadreja de Richard Dawkins. Cada gen es una letra (A–Z, Ñ y espacio) y la frase objetivo se puede escribir; se pasa a mayúsculas, sin tildes y hasta 40 caracteres. El mejor histórico se muestra en un panel de letras giratorias, como los de las estaciones, y debajo aparecen los mejores candidatos distintos de la generación con las letras acertadas en verde.
+- **Pixel art**: el objetivo es un dibujo de 16 × 16 píxeles (corazón, marciano o seta) con una paleta de 8 colores. Se muestra el mejor histórico a tamaño grande, con los píxeles que cambian fundiéndose y los incorrectos recuadrados en rojo cuando quedan pocos, junto al objetivo y miniaturas de la generación actual repartidas por el ranking. Su tasa de mutación inicial es del 0,5 %.
+- **Dígitos**: el objetivo aleatorio de la versión Java.
+
 ## Optimización de funciones
 
 El problema de funciones ofrece cuatro funciones de prueba clásicas de dos variables, que se minimizan, además de la función original de una variable de la versión Java, que se maximiza (`src/landscapes.ts`):

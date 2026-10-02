@@ -128,9 +128,44 @@ test('la función 2D se ve en 3D, se gira y tiene mapa de calor', async ({ page 
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-heatmap.png`, fullPage: true });
 });
 
+test('la secuencia se ve como panel de letras y como pixel art', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
+  await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('sequence');
+  await expect(page.getByRole('combobox', { name: 'Modo', exact: true })).toHaveValue('phrase');
+  await page.getByLabel('Frase objetivo').fill('¡Hola, pingüino del Ñandú!');
+  await page.getByLabel('Frase objetivo').press('Enter');
+  await expect(page.getByLabel('Frase objetivo')).toHaveValue('HOLA PINGUINO DEL ÑANDU');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('chromosome').locator('span')).toHaveCount(23);
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Ocultar parámetros' }).click();
+  await page.getByRole('button', { name: 'Avanzar 100 generaciones', exact: true }).click();
+  await expect(page.getByTestId('generation')).toHaveText('100', { timeout: 10000 });
+  await expect(page.getByTestId('solution-canvas')).toHaveAttribute('aria-label', /de 23 letras correctas/);
+  await page.getByRole('button', { name: 'Avanzar una generación', exact: true }).click();
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-phrase.png`, fullPage: true });
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
+  await page.getByRole('combobox', { name: 'Modo', exact: true }).selectOption('pixels');
+  await page.getByRole('combobox', { name: 'Dibujo', exact: true }).selectOption('mushroom');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('chromosome').locator('span')).toHaveCount(256);
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Ocultar parámetros' }).click();
+  await page.getByRole('button', { name: 'Avanzar 100 generaciones', exact: true }).click();
+  await expect(page.getByTestId('generation')).toHaveText('100', { timeout: 10000 });
+  await page.getByRole('button', { name: 'Avanzar 100 generaciones', exact: true }).click();
+  await expect(page.getByTestId('generation')).toHaveText('200', { timeout: 10000 });
+  await expect(page.getByTestId('solution-canvas')).toHaveAttribute('aria-label', /de 256 píxeles correctos/);
+  await page.waitForTimeout(400);
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-pixels.png`, fullPage: true });
+});
+
 test('población, descarga y configuración reproducible', async ({ page, browserName }, testInfo) => {
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
   await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('sequence');
+  await page.getByRole('combobox', { name: 'Modo', exact: true }).selectOption('digits');
   await page.getByRole('combobox', { name: 'Selección', exact: true }).selectOption('residual');
   await page.getByRole('combobox', { name: 'Cruce', exact: true }).selectOption('double');
   await page.getByLabel('Conservar el mejor individuo').check();

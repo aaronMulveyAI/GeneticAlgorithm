@@ -1,4 +1,5 @@
 import { LANDSCAPE_NAMES } from './landscapes';
+import { DEFAULT_PHRASE, isValidPhrase, SEQUENCE_MODES, SPRITES } from './sequence';
 import type { Config, Creature, ProblemId, Scenario, Terrain } from './types';
 
 export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: string; sizeLabel: string; defaultSize: number; min: number; max: number }> = {
@@ -25,6 +26,7 @@ export const DEFAULT_CONFIG: Config = {
   problem: 'queens', size: 8, populationSize: 96, selection: 'tournament',
   crossover: 'uniform', mutationRate: 0.025, crossoverRate: 0.85,
   tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall', creature: 'quadruped', terrain: 'flat', landscape: 'rastrigin',
+  sequenceMode: 'phrase', phrase: DEFAULT_PHRASE, sprite: 'heart',
 };
 
 export function validateConfig(config: Config): void {
@@ -50,7 +52,9 @@ export function validateConfig(config: Config): void {
       || typeof config.scenario !== 'string' || !Object.hasOwn(SCENARIOS, config.scenario)
       || typeof config.creature !== 'string' || !Object.hasOwn(CREATURES, config.creature)
       || typeof config.terrain !== 'string' || !Object.hasOwn(TERRAINS, config.terrain)
-      || typeof config.landscape !== 'string' || !Object.hasOwn(LANDSCAPE_NAMES, config.landscape)) {
+      || typeof config.landscape !== 'string' || !Object.hasOwn(LANDSCAPE_NAMES, config.landscape)
+      || typeof config.sequenceMode !== 'string' || !Object.hasOwn(SEQUENCE_MODES, config.sequenceMode)
+      || typeof config.sprite !== 'string' || !Object.hasOwn(SPRITES, config.sprite) || !isValidPhrase(config.phrase)) {
     throw new Error('Operadores no válidos.');
   }
 }

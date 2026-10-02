@@ -5,6 +5,7 @@ import { binaryToReal, createProblem, cross, evaluate, GeneticEngine, MAX_GENERA
 import { distanceField, flyRocket, remainingDistance } from './rockets';
 import { BODIES, geneCount, simulateWalker, terrainHeight } from './walker';
 import { decodePoint, LANDSCAPES, normalizedHeight } from './landscapes';
+import { ALPHABET, DEFAULT_PHRASE, normalizePhrase, PALETTE, phraseGenes, spriteGenes, SPRITES } from './sequence';
 import type { Config, Crossover, ProblemId, Scenario, Selection } from './types';
 
 describe('Correspondencia con los problemas Java', () => {
@@ -27,7 +28,7 @@ describe('Correspondencia con los problemas Java', () => {
     expect(() => evaluate(problem, [2, 0, 0])).toThrow();
   });
   it('puntúa las coincidencias de la secuencia', () => {
-    const problem = createProblem({ ...DEFAULT_CONFIG, problem: 'sequence', size: 3 }, seedrandom('fixture'));
+    const problem = createProblem({ ...DEFAULT_CONFIG, problem: 'sequence', size: 3, sequenceMode: 'digits' }, seedrandom('fixture'));
     problem.target = [4, 5, 6];
     expect(evaluate(problem, [4, 0, 6])).toBe(2);
   });
@@ -35,6 +36,41 @@ describe('Correspondencia con los problemas Java', () => {
     expect(binaryToReal(Array(32).fill(0))).toBe(-100);
     expect(binaryToReal(Array(32).fill(1))).toBe(100);
     expect(objective(0)).toBe(7.5);
+  });
+});
+
+describe('Frase y pixel art', () => {
+  it('normaliza la frase: mayúsculas, sin tildes, con Ñ y sin símbolos', () => {
+    expect(normalizePhrase('  ¡Hola, señor   Pingüino!  ')).toBe('HOLA SEÑOR PINGUINO');
+    expect(normalizePhrase('evolución')).toBe('EVOLUCION');
+    expect(normalizePhrase('x'.repeat(60))).toHaveLength(40);
+    expect(normalizePhrase('123 ?')).toBe('');
+    expect(normalizePhrase(DEFAULT_PHRASE)).toBe(DEFAULT_PHRASE);
+  });
+  it('usa la frase como objetivo y el alfabeto como dominio', () => {
+    const problem = createProblem({ ...DEFAULT_CONFIG, problem: 'sequence', sequenceMode: 'phrase', phrase: 'HOLA MUNDO' }, seedrandom('fixture'));
+    expect(problem.size).toBe(10);
+    expect(problem.domain).toBe(ALPHABET.length);
+    expect(problem.target.map(gene => ALPHABET[gene]).join('')).toBe('HOLA MUNDO');
+    expect(evaluate(problem, phraseGenes('HOLA MUNDO'))).toBe(10);
+    expect(evaluate(problem, phraseGenes('HOLA LUNES'))).toBe(7);
+  });
+  it('dibujos de 16 × 16 con colores de la paleta', () => {
+    for (const sprite of Object.keys(SPRITES) as (keyof typeof SPRITES)[]) {
+      const genes = spriteGenes(sprite);
+      expect(genes).toHaveLength(256);
+      expect(genes.every(gene => gene >= 0 && gene < PALETTE.length)).toBe(true);
+      expect(new Set(genes).size).toBeGreaterThan(1);
+      const problem = createProblem({ ...DEFAULT_CONFIG, problem: 'sequence', sequenceMode: 'pixels', sprite }, seedrandom('fixture'));
+      expect(problem.size).toBe(256);
+      expect(problem.domain).toBe(PALETTE.length);
+      expect(evaluate(problem, genes)).toBe(256);
+    }
+  });
+  it('descubre la frase objetivo', () => {
+    const engine = new GeneticEngine({ ...DEFAULT_CONFIG, problem: 'sequence', sequenceMode: 'phrase', mutationRate: 0.035 });
+    engine.evolve(100); engine.evolve(100);
+    expect(engine.snapshot().best.fitness).toBe(DEFAULT_PHRASE.length);
   });
 });
 
@@ -220,7 +256,7 @@ describe('Operadores y simulaciones', () => {
   });
   it('muta bits, dígitos y columnas en sus dominios, incluidos tamaños pequeños', () => {
     for (const [id, size] of [['queens', 1], ['sequence', 1], ['sequence', 40], ['knapsack', 3], ['function', 32], ['rockets', 40]] as const) {
-      const problem = createProblem({ ...DEFAULT_CONFIG, problem: id, size }, seedrandom('fixture'));
+      const problem = createProblem({ ...DEFAULT_CONFIG, problem: id, size, sequenceMode: 'digits' }, seedrandom('fixture'));
       const genes = Array(size).fill(0);
       mutate(problem, genes, 1, seedrandom('mutation'));
       validateGenes(problem, genes);
@@ -251,7 +287,8 @@ describe('Operadores y simulaciones', () => {
 describe('Configuración compartida y validación', () => {
   it('comparte y recupera todos los parámetros mediante la URL', () => {
     const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const, scenario: 'slalom' as const,
-      creature: 'worm' as const, terrain: 'hills' as const, landscape: 'himmelblau' as const };
+      creature: 'worm' as const, terrain: 'hills' as const, landscape: 'himmelblau' as const,
+      sequenceMode: 'pixels' as const, phrase: 'HOLA MUNDO', sprite: 'invader' as const };
     const url = shareUrl(config, { origin: 'https://demo.vercel.app', pathname: '/' });
     expect(readConfig(new URL(url).search)).toEqual(config);
   });
@@ -264,6 +301,9 @@ describe('Configuración compartida y validación', () => {
     expect(readConfig('?config={"problem":"walker","size":10,"creature":"__proto__"}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"walker","size":10,"terrain":"lava"}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"function","size":32,"landscape":"valueOf"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"sequence","phrase":"hola"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"sequence","phrase":""}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"sequence","sprite":"constructor"}')).toEqual(DEFAULT_CONFIG);
     for (const invalid of [{ size: 0 }, { mutationRate: NaN }, { crossoverRate: 2 }, { seed: -1 }, { populationSize: 501 }]) {
       expect(() => validateConfig({ ...DEFAULT_CONFIG, ...invalid })).toThrow();
     }

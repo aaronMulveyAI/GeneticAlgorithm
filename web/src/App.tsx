@@ -8,10 +8,12 @@ import { CREATURES, DEFAULT_CONFIG, PROBLEMS, readConfig, SCENARIOS, shareUrl, T
 import { binaryToReal } from './engine';
 import { decodePoint, LANDSCAPE_NAMES } from './landscapes';
 import { DIRECTION_ARROWS } from './rockets';
+import { ALPHABET, MAX_PHRASE, normalizePhrase, PALETTE, SEQUENCE_MODES, SPRITE_SIZE, SPRITES } from './sequence';
+import { phrasePainter, pixelPainter } from './sequenceViews';
 import { heatmapPainter, rotateSurface, surfacePainter } from './surface';
 import { useSimulation } from './useSimulation';
 import { evolutionPainter, histogramPainter, populationPainter, rocketFlights, solutionPainter, walkerRuns } from './visualizations';
-import type { Config, Creature, Crossover, Landscape, ProblemId, Scenario, Selection, Snapshot, Terrain } from './types';
+import type { Config, Creature, Crossover, Landscape, ProblemId, Scenario, SequenceMode, Selection, Snapshot, Sprite, Terrain } from './types';
 
 const formatters = Array.from({ length: 5 }, (_, digits) => new Intl.NumberFormat('es-ES', {
   maximumFractionDigits: digits, minimumFractionDigits: digits,
@@ -20,7 +22,8 @@ const format = (value: number, digits = 2) => formatters[digits].format(value);
 const surface = (problem: Snapshot['problem']) => problem.id === 'function' && problem.landscape !== 'original';
 const fitnessDigits = (problem: Snapshot['problem']) => surface(problem) ? 3
   : problem.permutation || problem.id === 'function' || problem.id === 'walker' ? 2 : problem.id === 'rockets' ? 1 : 0;
-const animated = (problem: Snapshot['problem']) => problem.id === 'rockets' || problem.id === 'walker' || surface(problem);
+const fixedTarget = (problem: Snapshot['problem']) => problem.id === 'sequence' && problem.sequenceMode !== 'digits';
+const animated = (problem: Snapshot['problem']) => problem.id === 'rockets' || problem.id === 'walker' || surface(problem) || fixedTarget(problem);
 type View = 'solution' | 'heatmap' | 'population';
 
 function NumberField({ label, value, min, max, disabled, change }: {
@@ -39,6 +42,27 @@ function NumberField({ label, value, min, max, disabled, change }: {
   </label>;
 }
 
+function PhraseField({ value, disabled, change }: { value: string; disabled: boolean; change: (value: string) => void }) {
+  const [draft, setDraft] = useState(value);
+  const apply = () => {
+    const phrase = normalizePhrase(draft);
+    if (phrase) change(phrase);
+    setDraft(phrase || value);
+  };
+  return <label className="field">
+    <span>Frase objetivo</span>
+    <input id="phrase" type="text" value={draft} disabled={disabled} maxLength={MAX_PHRASE * 2} autoComplete="off" spellCheck={false}
+      onChange={event => setDraft(event.target.value)} onBlur={apply}
+      onKeyDown={event => { if (event.key === 'Enter') event.currentTarget.blur(); }} />
+    <small className="field-hint">Letras A–Z, Ñ y espacios; hasta {MAX_PHRASE} caracteres.</small>
+  </label>;
+}
+
+const SEQUENCE_UNITS: Record<SequenceMode, [string, string]> = {
+  phrase: ['letras correctas', 'Letras'], pixels: ['píxeles correctos', 'Píxeles'], digits: ['dígitos correctos', 'Dígitos'],
+};
+const MUTATION: Record<SequenceMode, number> = { phrase: 0.035, pixels: 0.005, digits: 0.035 };
+
 function sceneDetail(snapshot: Snapshot): string {
   const { problem, best } = snapshot;
   if (problem.id === 'queens') {
@@ -46,7 +70,7 @@ function sceneDetail(snapshot: Snapshot): string {
     return conflicts === 0 ? 'Tablero sin conflictos' : `${conflicts} pares en conflicto`;
   }
   if (problem.permutation) return `Ruta cerrada · ${problem.size} ciudades`;
-  if (problem.id === 'sequence') return `${best.fitness} de ${problem.size} dígitos correctos`;
+  if (problem.id === 'sequence') return `${best.fitness} de ${problem.size} ${SEQUENCE_UNITS[problem.sequenceMode ?? 'digits'][0]}`;
   if (surface(problem)) {
     const point = decodePoint(problem.landscape as Exclude<Landscape, 'original'>, best.genes);
     return `f = ${format(best.fitness, 4)} en (${format(point.x, 3)}; ${format(point.y, 3)})`;
@@ -74,6 +98,11 @@ export default function App() {
   const running = snapshot?.status === 'running' && !pending;
   const completed = snapshot?.status === 'completed';
   const problem = PROBLEMS[config.problem];
+  const fixedSequence = config.problem === 'sequence' && config.sequenceMode !== 'digits';
+  const sizeValue = !fixedSequence ? config.size : config.sequenceMode === 'phrase' ? config.phrase.length : SPRITE_SIZE * SPRITE_SIZE;
+  const sizeLabel = config.problem === 'sequence' ? SEQUENCE_UNITS[config.sequenceMode][1] : problem.sizeLabel;
+  const unit = config.problem === 'sequence' ? SEQUENCE_UNITS[config.sequenceMode][0]
+    : config.problem === 'function' && config.landscape === 'original' ? 'valor de f(x)' : problem.unit;
   const disabled = pending || !snapshot || Boolean(error);
   const update = <K extends keyof Config>(key: K, value: Config[K]) =>
     setConfig(previous => ({ ...previous, [key]: value }));
@@ -81,7 +110,7 @@ export default function App() {
   function chooseProblem(id: ProblemId) {
     setConfig(previous => ({
       ...previous, problem: id, size: PROBLEMS[id].defaultSize,
-      mutationRate: id === 'sequence' ? 0.035 : id === 'function' || id === 'rockets' ? 0.01 : id === 'walker' ? 0.05 : 0.025,
+      mutationRate: id === 'sequence' ? MUTATION[previous.sequenceMode] : id === 'function' || id === 'rockets' ? 0.01 : id === 'walker' ? 0.05 : 0.025,
     }));
     setView('solution');
   }
@@ -162,11 +191,29 @@ export default function App() {
             </select>
           </label>
           <div className="paired-fields">
-            <NumberField key={`size-${config.size}-${config.problem}`} label={problem.sizeLabel} value={config.size}
-              min={problem.min} max={problem.max} disabled={running || config.problem === 'function'} change={value => update('size', value)} />
+            <NumberField key={`size-${sizeValue}-${config.problem}-${config.sequenceMode}`} label={sizeLabel} value={sizeValue}
+              min={problem.min} max={problem.max} disabled={running || config.problem === 'function' || fixedSequence}
+              change={value => update('size', value)} />
             <NumberField key={`population-${config.populationSize}`} label="Población" value={config.populationSize}
               min={2} max={500} disabled={running} change={value => update('populationSize', value)} />
           </div>
+          {config.problem === 'sequence' ? <>
+            <label className="field"><span>Modo</span>
+              <select value={config.sequenceMode} onChange={event => {
+                const mode = event.target.value as SequenceMode;
+                setConfig(previous => ({ ...previous, sequenceMode: mode, mutationRate: MUTATION[mode] }));
+              }}>
+                {Object.entries(SEQUENCE_MODES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+              </select>
+            </label>
+            {config.sequenceMode === 'phrase' ? <PhraseField key={config.phrase} value={config.phrase} disabled={running}
+              change={value => update('phrase', value)} /> : null}
+            {config.sequenceMode === 'pixels' ? <label className="field"><span>Dibujo</span>
+              <select value={config.sprite} onChange={event => update('sprite', event.target.value as Sprite)}>
+                {Object.entries(SPRITES).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+              </select>
+            </label> : null}
+          </> : null}
           {config.problem === 'rockets' ? <label className="field"><span>Escenario</span>
             <select value={config.scenario} onChange={event => update('scenario', event.target.value as Scenario)}>
               {Object.entries(SCENARIOS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
@@ -230,7 +277,7 @@ export default function App() {
         <div className="experiment-heading">
           <div><div className="eyebrow">EXPERIMENTO <span>{problem.short.toUpperCase()}</span></div>
             <h2>{config.problem === 'queens' ? `${config.size} reinas` : problem.name}</h2>
-            <p>{snapshot?.problem.minimize ? 'Minimizar' : 'Maximizar'} <span>·</span> {config.problem === 'function' && config.landscape === 'original' ? 'valor de f(x)' : problem.unit}</p>
+            <p>{snapshot?.problem.minimize ? 'Minimizar' : 'Maximizar'} <span>·</span> {unit}</p>
           </div>
           <div className={`status ${running ? 'is-running' : ''}`} role="status">
             {pending ? <LoaderCircle size={12} className="spin" /> : <span className="status-dot" />}{status}
@@ -288,10 +335,12 @@ export default function App() {
                 <span className="generation-tag">G{snapshot.generation}</span>
               </div>
               <div id="scene-panel" role="tabpanel" aria-labelledby={`${shown}-tab`}
-                className={`scene ${config.problem === 'knapsack' && shown === 'solution' ? 'scene-knapsack' : ''} ${surface(snapshot.problem) && shown !== 'population' ? 'scene-tall' : ''}`}
+                className={`scene ${config.problem === 'knapsack' && shown === 'solution' ? 'scene-knapsack' : ''} ${(surface(snapshot.problem) || fixedTarget(snapshot.problem)) && shown !== 'population' ? 'scene-tall' : ''}`}
                 style={{ '--knapsack-height': `${Math.max(310, Math.ceil(config.size / 4) * 42 + 60)}px` } as React.CSSProperties}>
                 <Canvas draw={shown === 'population' ? populationPainter(snapshot) : shown === 'heatmap' ? heatmapPainter(snapshot)
-                  : surface(snapshot.problem) ? surfacePainter(snapshot) : solutionPainter(snapshot)}
+                  : surface(snapshot.problem) ? surfacePainter(snapshot)
+                  : snapshot.problem.sequenceMode === 'phrase' ? phrasePainter(snapshot)
+                  : snapshot.problem.sequenceMode === 'pixels' ? pixelPainter(snapshot) : solutionPainter(snapshot)}
                   animate={shown !== 'population' && animated(snapshot.problem)}
                   onDrag={shown === 'solution' && surface(snapshot.problem) ? rotateSurface : undefined}
                   label={shown === 'population' ? 'Distribución del fitness de la población'
@@ -300,6 +349,8 @@ export default function App() {
                 <div className="scene-caption">
                   <span><span className="legend-dot green" />{shown !== 'population' ? sceneDetail(snapshot) : `${snapshot.population.length} individuos`}</span>
                   {shown === 'population' ? <span className="heat-legend">Menor <i /> Mayor aptitud</span>
+                    : snapshot.problem.sequenceMode === 'phrase' ? <span>Panel: mejor histórico · <span className="legend-dot green" />letra acertada</span>
+                    : snapshot.problem.sequenceMode === 'pixels' ? <span>Recuadro rojo: píxel incorrecto</span>
                     : config.problem === 'sequence' ? <span>Objetivo / candidato</span>
                     : config.problem === 'rockets' ? <span>Población actual · <span className="legend-dot green" />mejor histórico</span>
                     : config.problem === 'walker' ? <span>Azul: generación actual · negro: mejor histórico</span>
@@ -318,8 +369,11 @@ export default function App() {
               </li>)}</ol>
               <div className="chromosome"><h3>Cromosoma</h3>
                 <div className="gene-values" data-testid="chromosome">{snapshot.best.genes.map((gene, i) =>
-                  <span key={i}>{snapshot.problem.permutation ? gene + 1 : snapshot.problem.id === 'rockets' ? DIRECTION_ARROWS[gene]
-                    : snapshot.problem.id === 'walker' ? gene.toString(16).toUpperCase() : gene}</span>)}</div>
+                  snapshot.problem.sequenceMode === 'pixels'
+                    ? <span key={i} className="gene-colour" style={{ background: PALETTE[gene] }} />
+                    : <span key={i}>{snapshot.problem.permutation ? gene + 1 : snapshot.problem.id === 'rockets' ? DIRECTION_ARROWS[gene]
+                    : snapshot.problem.id === 'walker' ? gene.toString(16).toUpperCase()
+                    : snapshot.problem.sequenceMode === 'phrase' ? (gene ? ALPHABET[gene] : '·') : gene}</span>)}</div>
                 <span className="gene-count">{snapshot.best.genes.length} genes</span>
               </div>
             </aside>

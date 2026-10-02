@@ -117,6 +117,8 @@ canvas { display: block; width: 100%; }
 .chromosome { margin-top: 15px; padding-top: 17px; border-top: 1px solid var(--border); }
 .gene-values { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 12px; max-height: 100px; overflow-y: auto; }
 .gene-values span { background: #f1f4f7; border: 1px solid #e9edf2; min-width: 19px; height: 20px; display: grid; place-items: center; padding: 0 4px; font-size: 10px; font-family: "SFMono-Regular", Consolas, monospace; color: #6b7787; border-radius: 3px; }
+.gene-values .gene-colour { min-width: 14px; width: 14px; height: 14px; padding: 0; border-color: #d5dbe2; }
+.field-hint { display: block; margin-top: 6px; font-size: 10px; color: var(--muted); }
 .gene-count { display: block; color: #97a1ad; font-size: 9px; margin-top: 8px; }
 .charts-row { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr); margin-top: 21px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: white; }
 .chart-section { min-width: 0; }

@@ -2,6 +2,7 @@ import seedrandom from 'seedrandom';
 import { validateConfig } from './config';
 import { createWorld, DIRECTIONS, rocketFitness } from './rockets';
 import { landscapeValue } from './landscapes';
+import { ALPHABET, PALETTE, phraseGenes, spriteGenes } from './sequence';
 import { geneCount, LEVELS, simulateWalker } from './walker';
 import type { Config, Crossover, Discovery, HistoryPoint, Individual, Problem, Snapshot, Status } from './types';
 
@@ -13,10 +14,14 @@ export function createProblem(config: Config, random: Random): Problem {
   const permutation = config.problem === 'tsp' || config.problem === 'circular';
   // Las funciones de dos variables se minimizan; la original de una variable se maximiza, como en Java.
   const landscape2d = config.problem === 'function' && config.landscape !== 'original';
+  // La frase y el pixel art fijan el objetivo y su longitud; los dígitos se generan con la semilla.
+  const mode = config.problem === 'sequence' ? config.sequenceMode : undefined;
+  const fixedTarget = mode === 'phrase' ? phraseGenes(config.phrase) : mode === 'pixels' ? spriteGenes(config.sprite) : null;
   const problem: Problem = {
     // En la criatura, el tamaño configurado es la duración de la prueba y los genes dependen del cuerpo.
-    id: config.problem, size: config.problem === 'walker' ? geneCount(config.creature) : config.size, permutation, minimize: permutation || landscape2d,
-    domain: permutation || config.problem === 'queens' ? config.size : config.problem === 'sequence' ? 10
+    id: config.problem, size: config.problem === 'walker' ? geneCount(config.creature) : fixedTarget ? fixedTarget.length : config.size, permutation, minimize: permutation || landscape2d,
+    domain: permutation || config.problem === 'queens' ? config.size
+      : config.problem === 'sequence' ? (mode === 'phrase' ? ALPHABET.length : mode === 'pixels' ? PALETTE.length : 10)
       : config.problem === 'rockets' ? DIRECTIONS : config.problem === 'walker' ? LEVELS : 2,
     points: [], target: [], weights: [], values: [], capacity: 0,
   };
@@ -26,7 +31,7 @@ export function createProblem(config: Config, random: Random): Problem {
       const angle = 2 * Math.PI * i / config.size;
       problem.points.push({ x: 50 + 40 * Math.cos(angle), y: 50 + 40 * Math.sin(angle) });
     }
-    if (config.problem === 'sequence') problem.target.push(integer(random, 10));
+    if (config.problem === 'sequence' && !fixedTarget) problem.target.push(integer(random, 10));
     if (config.problem === 'knapsack') {
       problem.weights.push(integer(random, 10) + 1);
       problem.values.push(integer(random, 20) + 1);
@@ -35,6 +40,8 @@ export function createProblem(config: Config, random: Random): Problem {
   problem.capacity = Math.floor(problem.weights.reduce((sum, weight) => sum + weight, 0) * 0.8);
   if (config.problem === 'rockets') problem.world = createWorld(config.scenario, random);
   if (config.problem === 'function') problem.landscape = config.landscape;
+  if (mode) problem.sequenceMode = mode;
+  if (fixedTarget) problem.target = fixedTarget;
   if (config.problem === 'walker') problem.walker = { creature: config.creature, terrain: config.terrain, duration: config.size };
   return problem;
 }

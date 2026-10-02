@@ -2,6 +2,8 @@ export type ProblemId = 'queens' | 'tsp' | 'circular' | 'knapsack' | 'sequence' 
 export type Scenario = 'wall' | 'slalom' | 'asteroids';
 export type Creature = 'quadruped' | 'worm';
 export type Terrain = 'flat' | 'hills';
+export type SequenceMode = 'phrase' | 'pixels' | 'digits';
+export type Sprite = 'heart' | 'invader' | 'mushroom';
 export type Landscape = 'rastrigin' | 'ackley' | 'himmelblau' | 'schwefel' | 'original';
 export type Selection = 'tournament' | 'roulette' | 'truncation' | 'residual';
 export type Crossover = 'single' | 'double' | 'uniform';
@@ -22,6 +24,9 @@ export interface Config {
   creature: Creature;
   terrain: Terrain;
   landscape: Landscape;
+  sequenceMode: SequenceMode;
+  phrase: string;
+  sprite: Sprite;
 }
 
 export interface Point { x: number; y: number }
@@ -42,6 +47,7 @@ export interface Problem {
   world?: RocketWorld;
   walker?: WalkerWorld;
   landscape?: Landscape;
+  sequenceMode?: SequenceMode;
 }
 
 export interface Individual { genes: number[]; fitness: number }
