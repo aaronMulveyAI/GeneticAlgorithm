@@ -36,3 +36,10 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Web demo ###
+web/node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+web/artifacts/

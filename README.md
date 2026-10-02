@@ -1,5 +1,17 @@
 # Genetic Algorithm Framework
 
+## Demo Web
+
+La demo interactiva para navegador está en [web/](web/README.md). Incluye los seis problemas, controles de simulación, visualizaciones, gráficas, semilla reproducible, enlaces compartidos y exportación de resultados.
+
+```sh
+cd web
+npm ci
+npm run dev
+```
+
+Está preparada para Vercel con `web` como Root Directory. La aplicación Java original se conserva y sigue usando Maven. Consulta [las instrucciones de la demo](web/README.md) para las pruebas y la configuración de Vercel.
+
 ## Introduction
 This project presents advanced software designed to solve complex problems through genetic algorithms. Inspired by principles of natural selection and genetics, this framework enables users to tackle optimization problems efficiently without delving into the intricacies of algorithm implementation.
 
@@ -96,4 +108,3 @@ The core still uses a shared random generator and problem classes create Swing v
 
 ## Conclusion
 This framework serves as a powerful tool for exploring and optimizing genetic algorithms. Its adaptability, combined with the GUI's experimentation capabilities, provides a comprehensive platform for solving a wide range of optimization problems.
-
