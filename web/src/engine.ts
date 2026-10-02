@@ -1,6 +1,7 @@
 import seedrandom from 'seedrandom';
 import { validateConfig } from './config';
 import { createWorld, DIRECTIONS, rocketFitness } from './rockets';
+import { geneCount, LEVELS, simulateWalker } from './walker';
 import type { Config, Crossover, Discovery, HistoryPoint, Individual, Problem, Snapshot, Status } from './types';
 
 export const MAX_GENERATIONS = 5000;
@@ -10,9 +11,10 @@ const integer = (random: Random, bound: number) => Math.floor(random() * bound);
 export function createProblem(config: Config, random: Random): Problem {
   const permutation = config.problem === 'tsp' || config.problem === 'circular';
   const problem: Problem = {
-    id: config.problem, size: config.size, permutation, minimize: permutation,
+    // En la criatura, el tamaño configurado es la duración de la prueba y los genes dependen del cuerpo.
+    id: config.problem, size: config.problem === 'walker' ? geneCount(config.creature) : config.size, permutation, minimize: permutation,
     domain: permutation || config.problem === 'queens' ? config.size : config.problem === 'sequence' ? 10
-      : config.problem === 'rockets' ? DIRECTIONS : 2,
+      : config.problem === 'rockets' ? DIRECTIONS : config.problem === 'walker' ? LEVELS : 2,
     points: [], target: [], weights: [], values: [], capacity: 0,
   };
   for (let i = 0; i < config.size; i++) {
@@ -29,6 +31,7 @@ export function createProblem(config: Config, random: Random): Problem {
   }
   problem.capacity = Math.floor(problem.weights.reduce((sum, weight) => sum + weight, 0) * 0.8);
   if (config.problem === 'rockets') problem.world = createWorld(config.scenario, random);
+  if (config.problem === 'walker') problem.walker = { creature: config.creature, terrain: config.terrain, duration: config.size };
   return problem;
 }
 
@@ -75,6 +78,8 @@ export function evaluate(problem: Problem, genes: number[]): number {
       return objective(binaryToReal(genes));
     case 'rockets':
       return rocketFitness(problem.world!, genes);
+    case 'walker':
+      return simulateWalker(problem.walker!, genes).distance;
   }
 }
 

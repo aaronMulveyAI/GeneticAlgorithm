@@ -1,4 +1,4 @@
-import type { Config, ProblemId, Scenario } from './types';
+import type { Config, Creature, ProblemId, Scenario, Terrain } from './types';
 
 export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: string; sizeLabel: string; defaultSize: number; min: number; max: number }> = {
   queens: { name: 'N-reinas', short: 'Reinas', unit: 'pares sin conflicto', sizeLabel: 'Reinas', defaultSize: 8, min: 1, max: 24 },
@@ -8,6 +8,7 @@ export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: st
   sequence: { name: 'Adivinar la secuencia', short: 'Secuencia', unit: 'dígitos correctos', sizeLabel: 'Dígitos', defaultSize: 12, min: 1, max: 40 },
   function: { name: 'Optimización de función', short: 'Función', unit: 'valor de f(x)', sizeLabel: 'Bits', defaultSize: 32, min: 32, max: 32 },
   rockets: { name: 'Cohetes inteligentes', short: 'Cohetes', unit: 'puntos (100 = diana)', sizeLabel: 'Pasos de vuelo', defaultSize: 140, min: 40, max: 300 },
+  walker: { name: 'Criatura que aprende a andar', short: 'Criatura', unit: 'metros recorridos', sizeLabel: 'Duración (s)', defaultSize: 10, min: 4, max: 20 },
 };
 
 export const SCENARIOS: Record<Scenario, string> = {
@@ -16,10 +17,13 @@ export const SCENARIOS: Record<Scenario, string> = {
   asteroids: 'Asteroides (según la semilla)',
 };
 
+export const CREATURES: Record<Creature, string> = { quadruped: 'Cuadrúpedo', worm: 'Gusano' };
+export const TERRAINS: Record<Terrain, string> = { flat: 'Llano', hills: 'Colinas' };
+
 export const DEFAULT_CONFIG: Config = {
   problem: 'queens', size: 8, populationSize: 96, selection: 'tournament',
   crossover: 'uniform', mutationRate: 0.025, crossoverRate: 0.85,
-  tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall',
+  tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall', creature: 'quadruped', terrain: 'flat',
 };
 
 export function validateConfig(config: Config): void {
@@ -42,7 +46,9 @@ export function validateConfig(config: Config): void {
   }
   if (!['tournament', 'roulette', 'truncation', 'residual'].includes(config.selection)
       || !['single', 'double', 'uniform'].includes(config.crossover) || typeof config.elitism !== 'boolean'
-      || typeof config.scenario !== 'string' || !Object.hasOwn(SCENARIOS, config.scenario)) {
+      || typeof config.scenario !== 'string' || !Object.hasOwn(SCENARIOS, config.scenario)
+      || typeof config.creature !== 'string' || !Object.hasOwn(CREATURES, config.creature)
+      || typeof config.terrain !== 'string' || !Object.hasOwn(TERRAINS, config.terrain)) {
     throw new Error('Operadores no válidos.');
   }
 }

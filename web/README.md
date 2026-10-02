@@ -1,6 +1,6 @@
 # Demo web de Genetic Algorithm
 
-Aplicación en castellano para explorar desde el navegador los seis problemas del proyecto y una simulación animada de cohetes inteligentes. La aplicación Java y sus pruebas siguen en sus carpetas originales.
+Aplicación en castellano para explorar desde el navegador los seis problemas del proyecto y dos simulaciones animadas: cohetes inteligentes y una criatura que aprende a andar. La aplicación Java y sus pruebas siguen en sus carpetas originales.
 
 ## Desarrollo local
 
@@ -69,6 +69,17 @@ Problema exclusivo de la versión web, sin equivalente en Java (`src/rockets.ts`
 - Aterrizar puntúa de 100 a 200: cuanto antes llega, más puntos.
 - Escenarios: muro central, zigzag y un campo de asteroides generado con la semilla que siempre deja un pasillo de al menos 10 unidades.
 - La vista Mejor solución anima el vuelo de toda la población actual y resalta en verde el mejor cohete histórico. Mientras la simulación avanza, cada vuelta muestra la generación más reciente; en pausa, cada generación despega desde el principio. Con movimiento reducido activado se muestra el estado final del vuelo.
+
+## Criatura que aprende a andar
+
+Problema exclusivo de la versión web (`src/walker.ts`). La criatura es un conjunto de nodos unidos por huesos de longitud fija y músculos cuya longitud oscila. La física usa integración de Verlet con restricciones de distancia, gravedad, suelo y rozamiento, sin dependencias y de forma determinista.
+
+- El cromosoma tiene 16 niveles por gen: una frecuencia común y, para cada músculo, amplitud y fase. Cuadrúpedo: 9 genes. Gusano: 13.
+- El fitness son los metros que avanza el centro de la criatura durante la prueba (de 4 a 20 segundos; 10 por defecto).
+- Si el tronco del cuadrúpedo o el lomo del gusano tocan el suelo, la criatura se cae y la prueba termina con la distancia recorrida hasta ese momento.
+- Terrenos: llano o colinas suaves a partir de los 2 m.
+- La animación reproduce el recorrido en tiempo real con una cámara que sigue al mejor histórico (en negro, con músculos en rojo). En azul aparecen hasta diez individuos distintos de la generación actual repartidos por el ranking, en rojo los que se han caído. La barra superior sitúa a todos en la carrera aunque queden fuera de cámara.
+- Simular cada generación cuesta unos 40–70 ms con 96 individuos, por lo que la velocidad 16× avanza menos generaciones por segundo que en los demás problemas.
 
 ## Límites de la demo
 

@@ -3,6 +3,7 @@ import seedrandom from 'seedrandom';
 import { DEFAULT_CONFIG, PROBLEMS, readConfig, shareUrl, validateConfig } from './config';
 import { binaryToReal, createProblem, cross, evaluate, GeneticEngine, MAX_GENERATIONS, mutate, objective, selectionWeights, validateGenes } from './engine';
 import { distanceField, flyRocket, remainingDistance } from './rockets';
+import { BODIES, geneCount, simulateWalker, terrainHeight } from './walker';
 import type { Config, Crossover, ProblemId, Scenario, Selection } from './types';
 
 describe('Correspondencia con los problemas Java', () => {
@@ -75,6 +76,54 @@ describe('Cohetes inteligentes', () => {
     const engine = new GeneticEngine({ ...DEFAULT_CONFIG, problem: 'rockets', size: 140, mutationRate: 0.01, scenario: 'wall' });
     engine.evolve(100);
     expect(engine.snapshot().best.fitness).toBeGreaterThan(100);
+  });
+});
+
+describe('Criatura que aprende a andar', () => {
+  const walker = (creature: 'quadruped' | 'worm', terrain: 'flat' | 'hills' = 'flat') =>
+    createProblem({ ...DEFAULT_CONFIG, problem: 'walker', size: 10, creature, terrain }, seedrandom('fixture'));
+  it('ajusta el cromosoma al cuerpo y usa la duración como tamaño configurable', () => {
+    expect(walker('quadruped').size).toBe(geneCount('quadruped'));
+    expect(walker('worm').size).toBe(1 + 2 * BODIES.worm.muscles.length);
+    expect(walker('worm').walker).toEqual({ creature: 'worm', terrain: 'flat', duration: 10 });
+    expect(walker('quadruped').domain).toBe(16);
+  });
+  it('sin músculos activos se queda de pie y no avanza', () => {
+    for (const creature of ['quadruped', 'worm'] as const) {
+      const problem = walker(creature);
+      const genes = Array(problem.size).fill(0);
+      const result = simulateWalker(problem.walker!, genes);
+      expect(result.fallen).toBe(false);
+      expect(Math.abs(result.distance)).toBeLessThan(0.05);
+    }
+  });
+  it('es determinista y conserva la longitud de los huesos', () => {
+    const problem = walker('quadruped');
+    const random = seedrandom('genes');
+    for (let trial = 0; trial < 20; trial++) {
+      const genes = Array.from({ length: problem.size }, () => Math.floor(random() * 16));
+      const run = simulateWalker(problem.walker!, genes, true);
+      expect(simulateWalker(problem.walker!, genes).distance).toBe(run.distance);
+      expect(evaluate(problem, genes)).toBe(run.distance);
+      const body = BODIES.quadruped;
+      for (const frame of run.frames!) for (const [a, b] of body.bones) {
+        const rest = Math.hypot(body.nodes[b].x - body.nodes[a].x, body.nodes[b].y - body.nodes[a].y);
+        expect(Math.abs(Math.hypot(frame[2 * b] - frame[2 * a], frame[2 * b + 1] - frame[2 * a + 1]) / rest - 1)).toBeLessThan(0.25);
+      }
+    }
+  });
+  it('el terreno de colinas empieza llano', () => {
+    expect(terrainHeight('hills', 1)).toBe(0);
+    expect(terrainHeight('hills', 2 + Math.PI / 0.9)).toBeCloseTo(0.4);
+    expect(terrainHeight('flat', 5)).toBe(0);
+  });
+  it('aprende a desplazarse', () => {
+    const engine = new GeneticEngine({ ...DEFAULT_CONFIG, problem: 'walker', size: 10, mutationRate: 0.05 });
+    const initial = engine.snapshot().average;
+    engine.evolve(30);
+    const snapshot = engine.snapshot();
+    expect(snapshot.best.fitness).toBeGreaterThan(4);
+    expect(snapshot.average).toBeGreaterThan(initial + 2);
   });
 });
 
@@ -167,7 +216,8 @@ describe('Operadores y simulaciones', () => {
 
 describe('Configuración compartida y validación', () => {
   it('comparte y recupera todos los parámetros mediante la URL', () => {
-    const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const, scenario: 'slalom' as const };
+    const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const, scenario: 'slalom' as const,
+      creature: 'worm' as const, terrain: 'hills' as const };
     const url = shareUrl(config, { origin: 'https://demo.vercel.app', pathname: '/' });
     expect(readConfig(new URL(url).search)).toEqual(config);
   });
@@ -177,6 +227,8 @@ describe('Configuración compartida y validación', () => {
     expect(readConfig('?config={"seed":-1}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"__proto__"}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"rockets","size":140,"scenario":"toString"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"walker","size":10,"creature":"__proto__"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"walker","size":10,"terrain":"lava"}')).toEqual(DEFAULT_CONFIG);
     for (const invalid of [{ size: 0 }, { mutationRate: NaN }, { crossoverRate: 2 }, { seed: -1 }, { populationSize: 501 }]) {
       expect(() => validateConfig({ ...DEFAULT_CONFIG, ...invalid })).toThrow();
     }

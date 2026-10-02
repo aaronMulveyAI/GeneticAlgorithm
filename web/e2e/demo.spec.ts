@@ -26,9 +26,9 @@ test('avanza, ejecuta, pausa y reinicia desde el navegador', async ({ page }, te
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-queens.png`, fullPage: true });
 });
 
-test('los siete problemas dibujan soluciones reales y caben en pantalla', async ({ page }, testInfo) => {
+test('los ocho problemas dibujan soluciones reales y caben en pantalla', async ({ page }, testInfo) => {
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
-  for (const problem of ['queens', 'tsp', 'circular', 'knapsack', 'sequence', 'function', 'rockets']) {
+  for (const problem of ['queens', 'tsp', 'circular', 'knapsack', 'sequence', 'function', 'rockets', 'walker']) {
     await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption(problem);
     await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Avanzar una generación', exact: true }).click();
@@ -68,6 +68,31 @@ test('los cohetes vuelan animados y cambian de escenario', async ({ page }, test
   await page.waitForTimeout(4500);
   expect(errors).toEqual([]);
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-rockets-flight.png`, fullPage: true });
+});
+
+test('la criatura anda animada y cambia de cuerpo y terreno', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
+  await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('walker');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  await expect(page.getByRole('spinbutton', { name: 'Duración (s)', exact: true })).toHaveValue('10');
+  await expect(page.getByTestId('chromosome').locator('span')).toHaveCount(9);
+  await page.getByRole('combobox', { name: 'Criatura', exact: true }).selectOption('worm');
+  await page.getByRole('combobox', { name: 'Terreno', exact: true }).selectOption('hills');
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  await expect(page.getByTestId('chromosome').locator('span')).toHaveCount(13);
+  const frame = () => page.getByTestId('solution-canvas').evaluate((element: HTMLCanvasElement) => element.toDataURL());
+  const first = await frame();
+  await expect.poll(frame).not.toBe(first);
+  await page.getByRole('combobox', { name: 'Criatura', exact: true }).selectOption('quadruped');
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Ocultar parámetros' }).click();
+  await page.getByRole('button', { name: 'Avanzar 100 generaciones', exact: true }).click();
+  await expect(page.getByTestId('generation')).toHaveText('100', { timeout: 30000 });
+  await expect(page.getByTestId('solution-canvas')).toHaveAttribute('aria-label', /El mejor recorre/);
+  await page.waitForTimeout(6000);
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-walker-run.png`, fullPage: true });
 });
 
 test('población, descarga y configuración reproducible', async ({ page, browserName }, testInfo) => {

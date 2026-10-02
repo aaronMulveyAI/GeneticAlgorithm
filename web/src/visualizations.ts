@@ -1,6 +1,8 @@
 import { binaryToReal, objective } from './engine';
 import { DIRECTIONS, flyRocket, WORLD_SIZE } from './rockets';
 import type { Flight } from './rockets';
+import { BODIES, simulateWalker, STEPS_PER_SECOND, terrainHeight } from './walker';
+import type { WalkResult } from './walker';
 import type { Snapshot } from './types';
 import type { Painter } from './Canvas';
 
@@ -31,16 +33,39 @@ export function rocketFlights(snapshot: Snapshot) {
   return cached;
 }
 
+const walks = new WeakMap<Snapshot, { best: WalkResult; ghosts: WalkResult[] }>();
+const GHOSTS = 10;
+
+// El mejor histórico y una muestra de la generación actual repartida por todo el ranking, sin
+// cromosomas repetidos: cuando la población converge, los mejores suelen ser copias del mejor.
+export function walkerRuns(snapshot: Snapshot) {
+  let cached = walks.get(snapshot);
+  if (!cached) {
+    const world = snapshot.problem.walker!;
+    const seen = new Set([snapshot.best.genes.join(',')]);
+    const distinct = [...snapshot.population].sort((a, b) => b.fitness - a.fitness).filter(individual => {
+      const key = individual.genes.join(',');
+      return !seen.has(key) && Boolean(seen.add(key));
+    });
+    const sample = distinct.length <= GHOSTS ? distinct
+      : Array.from({ length: GHOSTS }, (_, i) => distinct[Math.round(i * (distinct.length - 1) / (GHOSTS - 1))]);
+    cached = {
+      best: simulateWalker(world, snapshot.best.genes, true),
+      ghosts: sample.map(individual => simulateWalker(world, individual.genes, true)),
+    };
+    walks.set(snapshot, cached);
+  }
+  return cached;
+}
+
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 const flightStarts = new WeakMap<Snapshot, number>();
 const HOLD_MS = 900;
 
 // Mientras la simulación avanza, el vuelo se repite con un reloj continuo y cada vuelta muestra la
 // generación más reciente. En pausa, cada generación nueva se ve despegar desde el principio.
-function flightFrame(snapshot: Snapshot, time: number): number {
-  const steps = snapshot.problem.size;
+function flightFrame(snapshot: Snapshot, time: number, steps = snapshot.problem.size, stepMs = Math.min(24, 4200 / steps)): number {
   if (reducedMotion()) return steps;
-  const stepMs = Math.min(24, 4200 / steps);
   if (snapshot.status !== 'running' && !flightStarts.has(snapshot)) flightStarts.set(snapshot, time);
   const elapsed = Math.max(0, time - (flightStarts.get(snapshot) ?? 0));
   return Math.min(steps, Math.floor(elapsed % (steps * stepMs + HOLD_MS) / stepMs));
@@ -148,8 +173,113 @@ function rocketPainter(snapshot: Snapshot): Painter {
   };
 }
 
+function walkerPainter(snapshot: Snapshot): Painter {
+  return (context, width, height, time) => {
+    const world = snapshot.problem.walker!;
+    const body = BODIES[world.creature];
+    const { best, ghosts } = walkerRuns(snapshot);
+    const steps = world.duration * STEPS_PER_SECOND;
+    const frame = flightFrame(snapshot, time, steps, 1000 / STEPS_PER_SECOND);
+    const pose = (run: WalkResult) => run.frames![Math.min(frame, run.frames!.length - 1)];
+    const centre = (positions: Float32Array) => {
+      let sum = 0;
+      for (let i = 0; i < positions.length; i += 2) sum += positions[i];
+      return sum / (positions.length / 2);
+    };
+    const current = pose(best);
+    const startX = centre(best.frames![0]);
+    const bestX = centre(current);
+    // Unos 7 m de pista en escritorio; en pantallas estrechas se acerca la cámara.
+    const scale = Math.min(Math.max(width / 7, Math.min(width / 4.5, 90)), height / 2.8);
+    const ground = height * 0.8;
+    const cameraX = bestX - width / scale * 0.4;
+    const sx = (x: number) => (x - cameraX) * scale;
+    const sy = (y: number) => ground - y * scale;
+    const viewEnd = cameraX + width / scale;
+
+    context.fillStyle = '#f7f9fb';
+    context.fillRect(0, 0, width, ground);
+    context.fillStyle = '#e4e9ef';
+    context.beginPath();
+    context.moveTo(0, height);
+    for (let x = cameraX; x <= viewEnd + 0.1; x += 0.1) context.lineTo(sx(x), sy(terrainHeight(world.terrain, x)));
+    context.lineTo(width, height);
+    context.closePath(); context.fill();
+    context.strokeStyle = '#c7d0db';
+    context.lineWidth = 1.5;
+    context.beginPath();
+    for (let x = cameraX; x <= viewEnd + 0.1; x += 0.1) {
+      if (x === cameraX) context.moveTo(sx(x), sy(terrainHeight(world.terrain, x)));
+      else context.lineTo(sx(x), sy(terrainHeight(world.terrain, x)));
+    }
+    context.stroke();
+    context.textAlign = 'center';
+    for (let metre = Math.ceil(cameraX - startX + 0.2); startX + metre <= viewEnd - 0.2; metre++) {
+      const x = startX + metre;
+      const y = sy(terrainHeight(world.terrain, x));
+      context.strokeStyle = metre === 0 ? GREEN : '#b6c0cc';
+      context.lineWidth = metre === 0 ? 2 : 1;
+      context.beginPath(); context.moveTo(sx(x), y); context.lineTo(sx(x), y + 7); context.stroke();
+      text(context, metre === 0 ? 'Salida' : `${metre} m`, sx(x), y + 20, 10, metre === 0 ? GREEN : '#818b98');
+    }
+    context.textAlign = 'left';
+
+    const down = (run: WalkResult) => run.fallen && frame >= run.frames!.length - 1;
+    const creature = (positions: Float32Array, ghost: boolean, fallen: boolean) => {
+      const point = (i: number) => [sx(positions[2 * i]), sy(positions[2 * i + 1])] as const;
+      context.lineCap = 'round';
+      for (const [a, b] of body.muscles) {
+        context.strokeStyle = ghost ? (fallen ? '#d35a6222' : '#3973d633') : '#d35a62bb';
+        context.lineWidth = ghost ? 1.5 : 3;
+        context.beginPath(); context.moveTo(...point(a)); context.lineTo(...point(b)); context.stroke();
+      }
+      for (const [a, b] of body.bones) {
+        context.strokeStyle = ghost ? (fallen ? '#d35a6255' : '#3973d655') : fallen ? '#9a5a60' : INK;
+        context.lineWidth = ghost ? 2 : 4;
+        context.beginPath(); context.moveTo(...point(a)); context.lineTo(...point(b)); context.stroke();
+      }
+      if (ghost) return;
+      body.nodes.forEach((_, i) => {
+        const [x, y] = point(i);
+        context.fillStyle = body.fragile.includes(i) ? GREEN : '#ffffff';
+        context.strokeStyle = INK;
+        context.lineWidth = 1.5;
+        context.beginPath(); context.arc(x, y, 4, 0, Math.PI * 2); context.fill(); context.stroke();
+      });
+    };
+    ghosts.forEach(run => creature(pose(run), true, down(run)));
+    const fallen = down(best);
+    creature(current, false, fallen);
+
+    // Barra de carrera con la posición de todos los participantes, aunque queden fuera de cámara.
+    const positions = ghosts.map(run => centre(pose(run)) - startX);
+    const low = Math.min(0, ...positions, bestX - startX) - 0.5;
+    const high = Math.max(...positions, bestX - startX) + 0.5;
+    const barLeft = 12, barRight = width - 12, barY = 44;
+    const bx = (distance: number) => barLeft + (distance - low) / (high - low) * (barRight - barLeft);
+    context.strokeStyle = '#dfe5ec';
+    context.lineWidth = 2;
+    context.beginPath(); context.moveTo(barLeft, barY); context.lineTo(barRight, barY); context.stroke();
+    context.fillStyle = GREEN;
+    context.fillRect(bx(0) - 1, barY - 5, 2, 10);
+    ghosts.forEach((run, i) => {
+      context.fillStyle = down(run) ? '#d35a62aa' : '#3973d699';
+      context.beginPath(); context.arc(bx(positions[i]), barY, 3.5, 0, Math.PI * 2); context.fill();
+    });
+    context.fillStyle = fallen ? '#9a5a60' : INK;
+    context.beginPath(); context.arc(bx(bestX - startX), barY, 5, 0, Math.PI * 2); context.fill();
+
+    text(context, `t = ${(Math.min(frame, steps) / STEPS_PER_SECOND).toFixed(1)} s / ${world.duration} s`, 12, 18, 10, '#6a7482');
+    context.textAlign = 'right';
+    text(context, `${(bestX - startX).toFixed(2)} m`, width - 12, 18, 12, GREEN);
+    if (fallen) text(context, 'Se ha caído', width - 12, 34, 10, '#b83e4c');
+    context.textAlign = 'left';
+  };
+}
+
 export function solutionPainter(snapshot: Snapshot): Painter {
   if (snapshot.problem.id === 'rockets') return rocketPainter(snapshot);
+  if (snapshot.problem.id === 'walker') return walkerPainter(snapshot);
   return (context, width, height) => {
     const { problem, best } = snapshot;
     const genes = best.genes;
