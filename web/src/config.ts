@@ -1,3 +1,4 @@
+import { CAPACITIES } from './knapsack';
 import { LANDSCAPE_NAMES } from './landscapes';
 import { DEFAULT_PHRASE, isValidPhrase, SEQUENCE_MODES, SPRITES } from './sequence';
 import type { Config, Creature, ProblemId, Scenario, Terrain } from './types';
@@ -6,7 +7,7 @@ export const PROBLEMS: Record<ProblemId, { name: string; short: string; unit: st
   queens: { name: 'N-reinas', short: 'Reinas', unit: 'pares sin conflicto', sizeLabel: 'Reinas', defaultSize: 8, min: 1, max: 24 },
   tsp: { name: 'Viajante de comercio', short: 'Viajante', unit: 'unidades de distancia', sizeLabel: 'Ciudades', defaultSize: 24, min: 3, max: 60 },
   circular: { name: 'Viajante circular', short: 'Circular', unit: 'unidades de distancia', sizeLabel: 'Ciudades', defaultSize: 16, min: 3, max: 60 },
-  knapsack: { name: 'Problema de la mochila', short: 'Mochila', unit: 'valor total', sizeLabel: 'Objetos', defaultSize: 20, min: 3, max: 48 },
+  knapsack: { name: 'Mochila de excursión', short: 'Mochila', unit: 'utilidad total', sizeLabel: 'Objetos', defaultSize: 20, min: 3, max: 48 },
   sequence: { name: 'Adivinar la secuencia', short: 'Secuencia', unit: 'dígitos correctos', sizeLabel: 'Dígitos', defaultSize: 12, min: 1, max: 40 },
   function: { name: 'Optimización de funciones', short: 'Función', unit: 'valor de f(x, y)', sizeLabel: 'Bits', defaultSize: 32, min: 32, max: 32 },
   rockets: { name: 'Cohetes inteligentes', short: 'Cohetes', unit: 'puntos (100 = diana)', sizeLabel: 'Pasos de vuelo', defaultSize: 140, min: 40, max: 300 },
@@ -26,7 +27,7 @@ export const DEFAULT_CONFIG: Config = {
   problem: 'queens', size: 8, populationSize: 96, selection: 'tournament',
   crossover: 'uniform', mutationRate: 0.025, crossoverRate: 0.85,
   tournamentSize: 5, seed: 42, elitism: false, scenario: 'wall', creature: 'quadruped', terrain: 'flat', landscape: 'rastrigin',
-  sequenceMode: 'phrase', phrase: DEFAULT_PHRASE, sprite: 'heart',
+  sequenceMode: 'phrase', phrase: DEFAULT_PHRASE, sprite: 'heart', knapsackCapacity: 'medium',
 };
 
 export function validateConfig(config: Config): void {
@@ -54,7 +55,8 @@ export function validateConfig(config: Config): void {
       || typeof config.terrain !== 'string' || !Object.hasOwn(TERRAINS, config.terrain)
       || typeof config.landscape !== 'string' || !Object.hasOwn(LANDSCAPE_NAMES, config.landscape)
       || typeof config.sequenceMode !== 'string' || !Object.hasOwn(SEQUENCE_MODES, config.sequenceMode)
-      || typeof config.sprite !== 'string' || !Object.hasOwn(SPRITES, config.sprite) || !isValidPhrase(config.phrase)) {
+      || typeof config.sprite !== 'string' || !Object.hasOwn(SPRITES, config.sprite) || !isValidPhrase(config.phrase)
+      || typeof config.knapsackCapacity !== 'string' || !Object.hasOwn(CAPACITIES, config.knapsackCapacity)) {
     throw new Error('Operadores no válidos.');
   }
 }

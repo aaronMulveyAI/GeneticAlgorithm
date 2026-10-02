@@ -5,6 +5,7 @@ import { binaryToReal, createProblem, cross, evaluate, GeneticEngine, MAX_GENERA
 import { distanceField, flyRocket, remainingDistance } from './rockets';
 import { BODIES, geneCount, simulateWalker, terrainHeight } from './walker';
 import { decodePoint, LANDSCAPES, normalizedHeight } from './landscapes';
+import { CAPACITIES, ITEMS, knapsackOptimum, packedWeight } from './knapsack';
 import { ALPHABET, DEFAULT_PHRASE, normalizePhrase, PALETTE, phraseGenes, spriteGenes, SPRITES } from './sequence';
 import type { Config, Crossover, ProblemId, Scenario, Selection } from './types';
 
@@ -36,6 +37,46 @@ describe('Correspondencia con los problemas Java', () => {
     expect(binaryToReal(Array(32).fill(0))).toBe(-100);
     expect(binaryToReal(Array(32).fill(1))).toBe(100);
     expect(objective(0)).toBe(7.5);
+  });
+});
+
+describe('Mochila de excursión', () => {
+  it('el óptimo por programación dinámica coincide con la búsqueda exhaustiva', () => {
+    const random = seedrandom('optimum');
+    for (let trial = 0; trial < 30; trial++) {
+      const count = 1 + Math.floor(random() * 12);
+      const weights = Array.from({ length: count }, () => 1 + Math.floor(random() * 10));
+      const values = Array.from({ length: count }, () => 1 + Math.floor(random() * 20));
+      const capacity = Math.floor(weights.reduce((a, b) => a + b, 0) * random());
+      let best = 0;
+      for (let mask = 0; mask < 2 ** count; mask++) {
+        let weight = 0, value = 0;
+        for (let i = 0; i < count; i++) if (mask >> i & 1) { weight += weights[i]; value += values[i]; }
+        if (weight <= capacity) best = Math.max(best, value);
+      }
+      const optimum = knapsackOptimum(weights, values, capacity);
+      expect(optimum.value).toBe(best);
+      expect(packedWeight(optimum.genes, weights)).toBeLessThanOrEqual(capacity);
+      expect(optimum.genes.reduce((sum, gene, i) => sum + gene * values[i], 0)).toBe(best);
+    }
+  });
+  it('nombra los objetos sin repetir y ajusta la capacidad', () => {
+    expect(new Set(ITEMS).size).toBe(ITEMS.length);
+    expect(ITEMS.length).toBeGreaterThanOrEqual(PROBLEMS.knapsack.max);
+    for (const capacity of Object.keys(CAPACITIES) as (keyof typeof CAPACITIES)[]) {
+      const problem = createProblem({ ...DEFAULT_CONFIG, problem: 'knapsack', size: 48, knapsackCapacity: capacity }, seedrandom('items'));
+      expect(new Set(problem.items).size).toBe(48);
+      const total = problem.weights.reduce((a, b) => a + b, 0);
+      expect(problem.capacity).toBe(Math.floor(total * CAPACITIES[capacity].ratio));
+      expect(evaluate(problem, problem.optimum!.genes)).toBe(problem.optimum!.value);
+    }
+  });
+  it('la misma semilla genera los mismos pesos y valores con cualquier capacidad', () => {
+    const loose = createProblem({ ...DEFAULT_CONFIG, problem: 'knapsack', size: 20, knapsackCapacity: 'loose' }, seedrandom('same'));
+    const tight = createProblem({ ...DEFAULT_CONFIG, problem: 'knapsack', size: 20, knapsackCapacity: 'tight' }, seedrandom('same'));
+    expect(tight.weights).toEqual(loose.weights);
+    expect(tight.values).toEqual(loose.values);
+    expect(tight.items).toEqual(loose.items);
   });
 });
 
@@ -288,7 +329,7 @@ describe('Configuración compartida y validación', () => {
   it('comparte y recupera todos los parámetros mediante la URL', () => {
     const config = { ...DEFAULT_CONFIG, seed: 987, elitism: true, selection: 'residual' as const, scenario: 'slalom' as const,
       creature: 'worm' as const, terrain: 'hills' as const, landscape: 'himmelblau' as const,
-      sequenceMode: 'pixels' as const, phrase: 'HOLA MUNDO', sprite: 'invader' as const };
+      sequenceMode: 'pixels' as const, phrase: 'HOLA MUNDO', sprite: 'invader' as const, knapsackCapacity: 'tight' as const };
     const url = shareUrl(config, { origin: 'https://demo.vercel.app', pathname: '/' });
     expect(readConfig(new URL(url).search)).toEqual(config);
   });
@@ -304,6 +345,7 @@ describe('Configuración compartida y validación', () => {
     expect(readConfig('?config={"problem":"sequence","phrase":"hola"}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"sequence","phrase":""}')).toEqual(DEFAULT_CONFIG);
     expect(readConfig('?config={"problem":"sequence","sprite":"constructor"}')).toEqual(DEFAULT_CONFIG);
+    expect(readConfig('?config={"problem":"knapsack","knapsackCapacity":"huge"}')).toEqual(DEFAULT_CONFIG);
     for (const invalid of [{ size: 0 }, { mutationRate: NaN }, { crossoverRate: 2 }, { seed: -1 }, { populationSize: 501 }]) {
       expect(() => validateConfig({ ...DEFAULT_CONFIG, ...invalid })).toThrow();
     }

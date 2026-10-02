@@ -1,6 +1,7 @@
 import seedrandom from 'seedrandom';
 import { validateConfig } from './config';
 import { createWorld, DIRECTIONS, rocketFitness } from './rockets';
+import { CAPACITIES, itemNames, knapsackOptimum } from './knapsack';
 import { landscapeValue } from './landscapes';
 import { ALPHABET, PALETTE, phraseGenes, spriteGenes } from './sequence';
 import { geneCount, LEVELS, simulateWalker } from './walker';
@@ -37,7 +38,13 @@ export function createProblem(config: Config, random: Random): Problem {
       problem.values.push(integer(random, 20) + 1);
     }
   }
-  problem.capacity = Math.floor(problem.weights.reduce((sum, weight) => sum + weight, 0) * 0.8);
+  problem.capacity = Math.floor(problem.weights.reduce((sum, weight) => sum + weight, 0)
+    * (config.problem === 'knapsack' ? CAPACITIES[config.knapsackCapacity].ratio : 0.8));
+  if (config.problem === 'knapsack') {
+    // Después de pesos y valores, para que la misma semilla siga generando la misma mochila.
+    problem.items = itemNames(config.size, random);
+    problem.optimum = knapsackOptimum(problem.weights, problem.values, problem.capacity);
+  }
   if (config.problem === 'rockets') problem.world = createWorld(config.scenario, random);
   if (config.problem === 'function') problem.landscape = config.landscape;
   if (mode) problem.sequenceMode = mode;

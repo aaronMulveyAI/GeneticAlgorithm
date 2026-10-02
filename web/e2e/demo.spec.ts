@@ -162,6 +162,29 @@ test('la secuencia se ve como panel de letras y como pixel art', async ({ page }
   await page.screenshot({ path: `artifacts/${testInfo.project.name}-pixels.png`, fullPage: true });
 });
 
+test('la mochila se llena, se compara con el óptimo y muestra valor y peso', async ({ page }, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
+  await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('knapsack');
+  await expect(page.getByRole('combobox', { name: 'Capacidad', exact: true })).toHaveValue('medium');
+  await page.getByRole('combobox', { name: 'Capacidad', exact: true }).selectOption('tight');
+  await page.getByRole('spinbutton', { name: 'Objetos', exact: true }).fill('32');
+  await page.getByRole('spinbutton', { name: 'Objetos', exact: true }).blur();
+  await expect(page.getByRole('button', { name: 'Iniciar', exact: true })).toBeEnabled();
+  if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Ocultar parámetros' }).click();
+  await expect(page.getByRole('tab', { name: 'Mochila', exact: true })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('solution-canvas')).toHaveAttribute('aria-label', /del óptimo|óptimo exacto/);
+  await page.getByRole('button', { name: 'Avanzar una generación', exact: true }).click();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-knapsack-pack.png`, fullPage: true });
+  await page.getByRole('tab', { name: 'Valor y peso', exact: true }).click();
+  await expect(page.getByTestId('solution-canvas')).toHaveAttribute('aria-label', /^Valor y peso/);
+  await expect(page.getByText(/candidatos se pasan de peso/)).toBeVisible();
+  expect(errors).toEqual([]);
+  await page.screenshot({ path: `artifacts/${testInfo.project.name}-knapsack-scatter.png`, fullPage: true });
+});
+
 test('población, descarga y configuración reproducible', async ({ page, browserName }, testInfo) => {
   if (testInfo.project.name === 'mobile') await page.getByRole('button', { name: 'Mostrar parámetros' }).click();
   await page.getByRole('combobox', { name: 'Problema', exact: true }).selectOption('sequence');

@@ -6,6 +6,8 @@ import {
 import { Canvas } from './Canvas';
 import { CREATURES, DEFAULT_CONFIG, PROBLEMS, readConfig, SCENARIOS, shareUrl, TERRAINS } from './config';
 import { binaryToReal } from './engine';
+import { CAPACITIES, packedWeight } from './knapsack';
+import { overweight, packPainter, scatterPainter } from './knapsackViews';
 import { decodePoint, LANDSCAPE_NAMES } from './landscapes';
 import { DIRECTION_ARROWS } from './rockets';
 import { ALPHABET, MAX_PHRASE, normalizePhrase, PALETTE, SEQUENCE_MODES, SPRITE_SIZE, SPRITES } from './sequence';
@@ -13,7 +15,7 @@ import { phrasePainter, pixelPainter } from './sequenceViews';
 import { heatmapPainter, rotateSurface, surfacePainter } from './surface';
 import { useSimulation } from './useSimulation';
 import { evolutionPainter, histogramPainter, populationPainter, rocketFlights, solutionPainter, walkerRuns } from './visualizations';
-import type { Config, Creature, Crossover, Landscape, ProblemId, Scenario, SequenceMode, Selection, Snapshot, Sprite, Terrain } from './types';
+import type { Config, Creature, Crossover, KnapsackCapacity, Landscape, ProblemId, Scenario, SequenceMode, Selection, Snapshot, Sprite, Terrain } from './types';
 
 const formatters = Array.from({ length: 5 }, (_, digits) => new Intl.NumberFormat('es-ES', {
   maximumFractionDigits: digits, minimumFractionDigits: digits,
@@ -23,8 +25,10 @@ const surface = (problem: Snapshot['problem']) => problem.id === 'function' && p
 const fitnessDigits = (problem: Snapshot['problem']) => surface(problem) ? 3
   : problem.permutation || problem.id === 'function' || problem.id === 'walker' ? 2 : problem.id === 'rockets' ? 1 : 0;
 const fixedTarget = (problem: Snapshot['problem']) => problem.id === 'sequence' && problem.sequenceMode !== 'digits';
-const animated = (problem: Snapshot['problem']) => problem.id === 'rockets' || problem.id === 'walker' || surface(problem) || fixedTarget(problem);
-type View = 'solution' | 'heatmap' | 'population';
+const animated = (problem: Snapshot['problem']) => problem.id === 'rockets' || problem.id === 'walker' || problem.id === 'knapsack'
+  || surface(problem) || fixedTarget(problem);
+const tall = (problem: Snapshot['problem']) => surface(problem) || fixedTarget(problem) || problem.id === 'knapsack';
+type View = 'solution' | 'heatmap' | 'scatter' | 'population';
 
 function NumberField({ label, value, min, max, disabled, change }: {
   label: string; value: number; min: number; max: number; disabled: boolean; change: (value: number) => void;
@@ -84,8 +88,10 @@ function sceneDetail(snapshot: Snapshot): string {
     const fell = walkerRuns(snapshot).best.fallen ? ' y se cae' : '';
     return `El mejor recorre ${format(best.fitness, 2)} m en ${problem.walker!.duration} s${fell}`;
   }
-  const weight = best.genes.reduce((sum, gene, i) => sum + gene * problem.weights[i], 0);
-  return `Peso ${weight} / ${problem.capacity} · ${best.genes.filter(Boolean).length} objetos`;
+  const optimum = problem.optimum!.value;
+  const share = optimum ? best.fitness / optimum * 100 : 100;
+  return `${best.genes.filter(Boolean).length} objetos · ${packedWeight(best.genes, problem.weights)} de ${problem.capacity} kg · `
+    + (share >= 100 ? 'óptimo exacto' : `${format(share, 1)} % del óptimo (${optimum})`);
 }
 
 export default function App() {
@@ -149,6 +155,7 @@ export default function App() {
 
   const tabs: [View, string][] = snapshot && surface(snapshot.problem)
     ? [['solution', 'Superficie 3D'], ['heatmap', 'Mapa de calor'], ['population', 'Población']]
+    : snapshot?.problem.id === 'knapsack' ? [['solution', 'Mochila'], ['scatter', 'Valor y peso'], ['population', 'Población']]
     : [['solution', 'Mejor solución'], ['population', 'Población']];
   const shown: View = tabs.some(([id]) => id === view) ? view : 'solution';
 
@@ -214,6 +221,11 @@ export default function App() {
               </select>
             </label> : null}
           </> : null}
+          {config.problem === 'knapsack' ? <label className="field"><span>Capacidad</span>
+            <select value={config.knapsackCapacity} onChange={event => update('knapsackCapacity', event.target.value as KnapsackCapacity)}>
+              {Object.entries(CAPACITIES).map(([id, { name }]) => <option key={id} value={id}>{name}</option>)}
+            </select>
+          </label> : null}
           {config.problem === 'rockets' ? <label className="field"><span>Escenario</span>
             <select value={config.scenario} onChange={event => update('scenario', event.target.value as Scenario)}>
               {Object.entries(SCENARIOS).map(([id, name]) => <option key={id} value={id}>{name}</option>)}
@@ -335,20 +347,21 @@ export default function App() {
                 <span className="generation-tag">G{snapshot.generation}</span>
               </div>
               <div id="scene-panel" role="tabpanel" aria-labelledby={`${shown}-tab`}
-                className={`scene ${config.problem === 'knapsack' && shown === 'solution' ? 'scene-knapsack' : ''} ${(surface(snapshot.problem) || fixedTarget(snapshot.problem)) && shown !== 'population' ? 'scene-tall' : ''}`}
-                style={{ '--knapsack-height': `${Math.max(310, Math.ceil(config.size / 4) * 42 + 60)}px` } as React.CSSProperties}>
+                className={`scene ${tall(snapshot.problem) && shown !== 'population' ? 'scene-tall' : ''}`}>
                 <Canvas draw={shown === 'population' ? populationPainter(snapshot) : shown === 'heatmap' ? heatmapPainter(snapshot)
+                  : shown === 'scatter' ? scatterPainter(snapshot) : snapshot.problem.id === 'knapsack' ? packPainter(snapshot)
                   : surface(snapshot.problem) ? surfacePainter(snapshot)
                   : snapshot.problem.sequenceMode === 'phrase' ? phrasePainter(snapshot)
                   : snapshot.problem.sequenceMode === 'pixels' ? pixelPainter(snapshot) : solutionPainter(snapshot)}
-                  animate={shown !== 'population' && animated(snapshot.problem)}
+                  animate={shown === 'solution' || shown === 'heatmap' ? animated(snapshot.problem) : false}
                   onDrag={shown === 'solution' && surface(snapshot.problem) ? rotateSurface : undefined}
                   label={shown === 'population' ? 'Distribución del fitness de la población'
-                    : `${shown === 'heatmap' ? 'Mapa de calor' : 'Mejor solución'} de ${problem.name}: ${sceneDetail(snapshot)}`}
+                    : `${shown === 'heatmap' ? 'Mapa de calor' : shown === 'scatter' ? 'Valor y peso' : 'Mejor solución'} de ${problem.name}: ${sceneDetail(snapshot)}`}
                   testId="solution-canvas" className="solution-canvas" />
                 <div className="scene-caption">
                   <span><span className="legend-dot green" />{shown !== 'population' ? sceneDetail(snapshot) : `${snapshot.population.length} individuos`}</span>
                   {shown === 'population' ? <span className="heat-legend">Menor <i /> Mayor aptitud</span>
+                    : snapshot.problem.id === 'knapsack' ? <span>{overweight(snapshot)} de {snapshot.population.length} candidatos se pasan de peso</span>
                     : snapshot.problem.sequenceMode === 'phrase' ? <span>Panel: mejor histórico · <span className="legend-dot green" />letra acertada</span>
                     : snapshot.problem.sequenceMode === 'pixels' ? <span>Recuadro rojo: píxel incorrecto</span>
                     : config.problem === 'sequence' ? <span>Objetivo / candidato</span>

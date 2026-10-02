@@ -358,22 +358,6 @@ export function solutionPainter(snapshot: Snapshot): Painter {
         text(context, String(genes[i]), x + (cell - 4) / 2, y + 57, 19, genes[i] === problem.target[i] ? GREEN : RED);
       }
       context.textAlign = 'left';
-    } else if (problem.id === 'knapsack') {
-      const columns = Math.max(4, Math.floor((width - 48) / 65));
-      const rows = Math.ceil(problem.size / columns);
-      const gap = 8;
-      const cellWidth = (width - 48 - (columns - 1) * gap) / columns;
-      const cellHeight = Math.min(74, (height - 50 - (rows - 1) * gap) / rows);
-      const top = (height - rows * cellHeight - (rows - 1) * gap) / 2;
-      for (let i = 0; i < problem.size; i++) {
-        const x = 24 + (i % columns) * (cellWidth + gap);
-        const y = top + Math.floor(i / columns) * (cellHeight + gap);
-        context.fillStyle = genes[i] ? '#e4f3eb' : '#f2f4f7';
-        context.fillRect(x, y, cellWidth, cellHeight);
-        if (cellHeight > 43) text(context, String(i + 1).padStart(2, '0'), x + 8, y + 15, 10, genes[i] ? GREEN : '#818b98');
-        text(context, `v ${problem.values[i]}`, x + 8, y + cellHeight * 0.63, Math.min(14, cellHeight * 0.4), genes[i] ? GREEN : INK);
-        if (cellWidth > 55 && cellHeight > 48) text(context, `p ${problem.weights[i]}`, x + 8, y + cellHeight - 8, 10, '#818b98');
-      }
     } else {
       const left = 40, right = width - 22, top = 22, bottom = height - 32;
       const samples = Array.from({ length: 501 }, (_, i) => ({ x: -100 + i * 0.4, y: objective(-100 + i * 0.4) }));

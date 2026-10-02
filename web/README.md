@@ -61,6 +61,15 @@ Las reinas, la mochila, la secuencia y la función usan las mismas reglas de eva
 
 Cada simulación tiene un generador pseudoaleatorio independiente (algoritmo Alea de `seedrandom`). Con el ARC4 por defecto, las semillas cuyos dígitos se repiten (1, 11, 111…) producían la misma ejecución. La misma semilla y configuración producen el mismo resultado en la versión web, aunque la secuencia aleatoria no coincide con `java.util.Random`.
 
+## Mochila de excursión
+
+Los pesos (1–10 kg) y las utilidades (1–20) se generan con la semilla como en la versión Java, y cada objeto recibe un nombre de excursión (`src/knapsack.ts`). La capacidad es una fracción del peso total: holgada al 80 % (la regla de Java), media al 50 % (por defecto) o ajustada al 30 %. Una mochila que se pasa de peso puntúa 0.
+
+- El óptimo exacto se calcula con programación dinámica al crear el problema, y la escena indica qué porcentaje del óptimo ha alcanzado el algoritmo.
+- La vista Mochila apila los objetos del mejor histórico como bloques de altura proporcional a su peso y color según su utilidad por kilo; entran y salen con una animación. Al lado aparecen los objetos que se quedan fuera, con los que sí lleva el óptimo marcados en naranja.
+- La vista Valor y peso coloca cada objeto según su peso y su utilidad, con rayos de utilidad por kilo, y señala con nombre los objetos en los que el algoritmo y el óptimo no coinciden.
+- El pie indica cuántos candidatos de la generación actual se pasan de peso.
+
 ## Adivinar la secuencia
 
 El problema tiene tres modos (`src/sequence.ts`). En todos, el fitness es el número de posiciones que coinciden con el objetivo:

@@ -2,6 +2,7 @@ export type ProblemId = 'queens' | 'tsp' | 'circular' | 'knapsack' | 'sequence' 
 export type Scenario = 'wall' | 'slalom' | 'asteroids';
 export type Creature = 'quadruped' | 'worm';
 export type Terrain = 'flat' | 'hills';
+export type KnapsackCapacity = 'loose' | 'medium' | 'tight';
 export type SequenceMode = 'phrase' | 'pixels' | 'digits';
 export type Sprite = 'heart' | 'invader' | 'mushroom';
 export type Landscape = 'rastrigin' | 'ackley' | 'himmelblau' | 'schwefel' | 'original';
@@ -27,6 +28,7 @@ export interface Config {
   sequenceMode: SequenceMode;
   phrase: string;
   sprite: Sprite;
+  knapsackCapacity: KnapsackCapacity;
 }
 
 export interface Point { x: number; y: number }
@@ -48,6 +50,8 @@ export interface Problem {
   walker?: WalkerWorld;
   landscape?: Landscape;
   sequenceMode?: SequenceMode;
+  items?: string[];
+  optimum?: { value: number; genes: number[] };
 }
 
 export interface Individual { genes: number[]; fitness: number }
