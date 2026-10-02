@@ -122,6 +122,13 @@ describe('Operadores y simulaciones', () => {
     second.evolve(15);
     expect(first.snapshot()).toEqual(second.snapshot());
   });
+  it('las semillas cuyos dígitos se repiten generan ejecuciones distintas', () => {
+    for (const [first, second] of [[1, 11], [1, 111], [12, 1212], [7, 77777]]) {
+      const instance = (seed: number) => new GeneticEngine({ ...DEFAULT_CONFIG, problem: 'tsp', size: 24, seed }).snapshot();
+      expect(instance(first).problem.points).not.toEqual(instance(second).problem.points);
+      expect(instance(first).population).not.toEqual(instance(second).population);
+    }
+  });
   it('permite conservar el mejor individuo sin alterar la población anterior', () => {
     const engine = new GeneticEngine({ ...DEFAULT_CONFIG, elitism: true, mutationRate: 1 });
     const before = engine.snapshot().current.fitness;

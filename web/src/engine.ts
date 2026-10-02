@@ -184,7 +184,8 @@ export class GeneticEngine {
   constructor(config: Config) {
     validateConfig(config);
     this.config = { ...config };
-    this.random = seedrandom(String(config.seed));
+    // Alea en lugar del ARC4 por defecto: ARC4 repite la clave de forma cíclica y las semillas 1, 11 y 111 coincidían.
+    this.random = seedrandom.alea(String(config.seed));
     this.problem = createProblem(config, this.random);
     this.population = Array.from({ length: config.populationSize }, () => this.individual(sample(this.problem, this.random)));
     this.best = this.currentBest();

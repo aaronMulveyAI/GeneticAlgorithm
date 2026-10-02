@@ -59,7 +59,7 @@ El botón Compartir genera un enlace con los parámetros y la semilla. Al abrirl
 
 Las reinas, la mochila, la secuencia y la función usan las mismas reglas de evaluación. El viajante web usa ciudades en un plano y distancias euclídeas para que el dibujo y el fitness correspondan; el viajante Java original permite matrices de distancias arbitrarias. La versión circular web usa radio 40.
 
-Cada simulación tiene un generador pseudoaleatorio `seedrandom` independiente. La misma semilla y configuración producen el mismo resultado en la versión web, aunque la secuencia aleatoria no coincide con `java.util.Random`.
+Cada simulación tiene un generador pseudoaleatorio independiente (algoritmo Alea de `seedrandom`). Con el ARC4 por defecto, las semillas cuyos dígitos se repiten (1, 11, 111…) producían la misma ejecución. La misma semilla y configuración producen el mismo resultado en la versión web, aunque la secuencia aleatoria no coincide con `java.util.Random`.
 
 ## Cohetes inteligentes
 
